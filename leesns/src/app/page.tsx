@@ -1,39 +1,31 @@
 "use client";
 
-import Image from "next/image";
+import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 export default function Home() {
-  return <div></div>;
+  const [userId, setUserId] = useState("");
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUserId("");
+    router.push("/login");
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setUserId((jwtDecode(token) as any).userId);
+    }
+  });
+
+  return (
+    <div>
+      안녕하세요 {userId}님!
+      <Button onClick={handleLogout}>로그아웃</Button>
+    </div>
+  );
 }

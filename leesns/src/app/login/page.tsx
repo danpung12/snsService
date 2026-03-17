@@ -2,19 +2,29 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LogIn } from "@/service/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LogInPage() {
-  const [id, setId] = useState("");
+  const router = useRouter();
+
+  const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSignUpClick = () => {
-    if (id.trim() === "") {
+  const handleSignUpClick = async () => {
+    if (userId.trim() === "") {
       window.alert("아이디를 입력해주세요");
     }
     if (password.trim() === "") {
       window.alert("비밀번호를 입력해주세요");
+    }
+
+    const result = await LogIn({ userId, password });
+    if (result.token) {
+      localStorage.setItem("token", result.token);
+      router.push("/");
     }
   };
 
@@ -23,7 +33,7 @@ export default function LogInPage() {
       <div className="text-xl flex flex-col gap-8 font-bold">로그인</div>
       <div className="flex flex-col gap-2">
         <Input
-          onChange={(e) => setId(e.target.value)}
+          onChange={(e) => setUserId(e.target.value)}
           className="py-6"
           type="id"
           placeholder="example@abc.com"

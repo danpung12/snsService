@@ -2,20 +2,25 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SignUp } from "@/service/auth";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function SignUpPage() {
-  const [id, setId] = useState("");
+  const [userId, setuserId] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSignUpClick = () => {
-    if (id.trim() === "") {
+    if (userId.trim() === "") {
       window.alert("아이디를 입력해주세요");
+      return;
     }
     if (password.trim() === "") {
       window.alert("비밀번호를 입력해주세요");
+      return;
     }
+
+    SignUp({ userId, password });
   };
 
   return (
@@ -23,7 +28,7 @@ export default function SignUpPage() {
       <div className="text-xl flex flex-col gap-8 font-bold">회원가입</div>
       <div className="flex flex-col gap-2">
         <Input
-          onChange={(e) => setId(e.target.value)}
+          onChange={(e) => setuserId(e.target.value)}
           className="py-6"
           type="id"
           placeholder="example@abc.com"
