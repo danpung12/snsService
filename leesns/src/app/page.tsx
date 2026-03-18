@@ -4,23 +4,24 @@ import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import Cookies from "js-cookie";
 
 export default function Home() {
   const [userId, setUserId] = useState("");
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    Cookies.remove("token");
     setUserId("");
     router.push("/login");
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (token) {
       setUserId((jwtDecode(token) as any).userId);
     }
-  });
+  }, []);
 
   return (
     <div>

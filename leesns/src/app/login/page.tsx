@@ -6,6 +6,7 @@ import { LogIn } from "@/service/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Cookies from "js-cookie";
 
 export default function LogInPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function LogInPage() {
 
     const result = await LogIn({ userId, password });
     if (result.token) {
-      localStorage.setItem("token", result.token);
+      Cookies.set("token", result.token, { expires: 7 });
       router.push("/");
     }
   };
