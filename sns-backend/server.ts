@@ -29,7 +29,7 @@ app.post("/login", async (req, res) => {
     return res.status(401).send("계정이 없어용");
 
   const token = jwt.sign({ id: user.id, userId: user.userId }, "secret");
-  res.json({ token });
+  res.json({ token, userId });
 });
 
 app.listen(4000);

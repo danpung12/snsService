@@ -7,9 +7,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Cookies from "js-cookie";
+import { useSetLogin } from "@/store/auth";
+import { useLogin } from "@/hooks/use-auth";
 
 export default function LogInPage() {
   const router = useRouter();
+
+  const { mutate: Login } = useLogin();
 
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
@@ -21,12 +25,7 @@ export default function LogInPage() {
     if (password.trim() === "") {
       window.alert("비밀번호를 입력해주세요");
     }
-
-    const result = await LogIn({ userId, password });
-    if (result.token) {
-      Cookies.set("token", result.token, { expires: 7 });
-      router.push("/");
-    }
+    Login({ userId, password });
   };
 
   return (

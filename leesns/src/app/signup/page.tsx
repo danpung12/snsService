@@ -2,13 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SignUp } from "@/service/auth";
+import { useSignUp } from "@/hooks/use-auth";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function SignUpPage() {
   const [userId, setuserId] = useState("");
   const [password, setPassword] = useState("");
+
+  const { mutate: SignUp } = useSignUp();
+
 
   const handleSignUpClick = () => {
     if (userId.trim() === "") {
