@@ -110,7 +110,7 @@ export class AuthService {
   }
 
   verifyToken(token: string) {
-    return this.jwtService.verify(token, { secret: JWT_SECRET });
+    return this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
   }
 
   rotateToken(token: string, isRefreshToken: boolean) {
