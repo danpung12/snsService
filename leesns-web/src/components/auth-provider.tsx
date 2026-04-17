@@ -13,9 +13,12 @@ export default function AuthProvider({
   const { setLogin, isLoad, setLoad } = useAuthStore();
 
   useEffect(() => {
-    const token = Cookies.get("token");
+    const token = Cookies.get("accessToken");
+    const rawNickname = Cookies.get("nickname");
+    const nickname = rawNickname ? decodeURIComponent(rawNickname) : "";
+
     if (token) {
-      setLogin(jwtDecode<{ userId: string }>(token).userId);
+      setLogin(jwtDecode<{ userId: string }>(token).userId, nickname);
     } else setLoad(true);
   }, [setLogin]);
 

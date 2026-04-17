@@ -7,13 +7,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function SignUpPage() {
-  const [userId, setuserId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
 
   const { mutate: SignUp } = useSignUp();
 
   const handleSignUpClick = () => {
-    if (userId.trim() === "") {
+    if (email.trim() === "") {
       window.alert("아이디를 입력해주세요");
       return;
     }
@@ -21,8 +22,12 @@ export default function SignUpPage() {
       window.alert("비밀번호를 입력해주세요");
       return;
     }
+    if (nickname.trim() === "") {
+      window.alert("닉네임을 입력해주세요");
+      return;
+    }
 
-    SignUp({ userId, password });
+    SignUp({ email, password, nickname });
   };
 
   return (
@@ -30,7 +35,7 @@ export default function SignUpPage() {
       <div className="text-xl flex flex-col gap-8 font-bold">회원가입</div>
       <div className="flex flex-col gap-2">
         <Input
-          onChange={(e) => setuserId(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           className="py-6"
           type="id"
           placeholder="example@abc.com"
@@ -40,6 +45,12 @@ export default function SignUpPage() {
           className="py-6"
           type="password"
           placeholder="password"
+        />
+        <Input
+          onChange={(e) => setNickname(e.target.value)}
+          className="py-6"
+          type="text"
+          placeholder="nickname"
         />
       </div>
 

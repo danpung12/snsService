@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  if (!request.cookies.has("token")) {
+  if (!request.cookies.has("accessToken")) {
     return NextResponse.redirect(new URL("/login", request.url));
   } else return NextResponse.next();
 }

@@ -16,9 +16,11 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: LogIn,
     onSuccess: (result) => {
-      if (result.token) {
-        Cookies.set("token", result.token, { expires: 7 });
-        setLogin(result.email);
+      if (result.accessToken && result.refreshToken) {
+        Cookies.set("accessToken", result.accessToken);
+        Cookies.set("refreshToken", result.refreshToken);
+        Cookies.set("nickname", result.nickname);
+        setLogin(result.userId, result.nickname);
 
         router.push("/");
       }

@@ -6,16 +6,21 @@ const initialState = {
   isLoad: false,
   isLoggedIn: false,
   userId: "",
+  nickname: "",
 };
 
 export const useAuthStore = create(
   combine(initialState, (set) => ({
-    setLogin: (id: string) =>
-      set({ userId: id, isLoggedIn: true, isLoad: true }),
+    setLogin: (id: string, nickname: string) =>
+      set({ userId: id, nickname: nickname, isLoggedIn: true, isLoad: true }),
 
     setLogout: () => {
-      Cookies.remove("token");
-      set({ userId: "", isLoggedIn: false, isLoad: true });
+      Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
+      Cookies.remove("userId");
+      Cookies.remove("nickname");
+
+      set({ userId: "", nickname: "", isLoggedIn: false, isLoad: true });
     },
 
     setLoad: (value: boolean) => {
@@ -27,3 +32,4 @@ export const useAuthStore = create(
 export const useSetLogin = () => useAuthStore((state) => state.setLogin);
 export const useSetLogout = () => useAuthStore((state) => state.setLogout);
 export const useUserId = () => useAuthStore((state) => state.userId);
+export const useNickname = () => useAuthStore((state) => state.nickname);

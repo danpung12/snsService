@@ -1,3 +1,4 @@
+import api from "@/lib/api";
 import { API_URL } from "@/lib/api_url";
 import axios from "axios";
 
@@ -10,7 +11,7 @@ export async function SignUp({
   nickname: string;
   password: string;
 }) {
-  const { data } = await axios.post(`${API_URL}/signup`, {
+  const { data } = await api.post(`/auth/signup`, {
     email,
     nickname,
     password,
@@ -26,14 +27,12 @@ export async function LogIn({
   email: string;
   password: string;
 }) {
-  const token = btoa(`${email}:${password}`);
-  const { data } = await axios.post(
-    `${API_URL}/login`,
-    {},
+  const { data } = await api.post(
+    `/auth/login`,
+
     {
-      headers: {
-        Authorization: `Basic ${token}`,
-      },
+      email,
+      password,
     },
   );
 
