@@ -11,8 +11,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './strategy/jwt.strategy';
 import { RefreshAuthGuard } from './strategy/jwt-refresh.strategy';
 import { AuthGuard } from '@nestjs/passport';
-import { type Request, type Response } from 'express';
-import { User } from '@prisma/client';
+import { type Response } from 'express';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -69,6 +68,23 @@ export class AuthController {
   @Get('private')
   async private(@Req() req) {
     return req.user;
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const { accessToken, refreshToken } = await this.authService.googleLogin(
+      req.user,
+    );
+
+    res.cookie('accessToken', accessToken, { httpOnly: true, path: '/' });
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, path: '/' });
+
+    res.redirect(`${process.env.FRONTEND_URL}/auth/success`);
   }
 
   // @Post('token/access')

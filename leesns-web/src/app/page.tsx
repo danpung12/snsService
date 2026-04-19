@@ -7,7 +7,6 @@ import CreatePostButton from "@/components/post/create-post-button";
 
 export default function Home() {
   const router = useRouter();
-
   const setLogout = useSetLogout();
   const nickname = useNickname();
 

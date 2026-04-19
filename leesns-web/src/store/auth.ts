@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import Cookies from "js-cookie";
 
 const initialState = {
   isLoad: false,
@@ -15,10 +14,7 @@ export const useAuthStore = create(
       set({ userId: id, nickname: nickname, isLoggedIn: true, isLoad: true }),
 
     setLogout: () => {
-      Cookies.remove("accessToken");
-      Cookies.remove("refreshToken");
-      Cookies.remove("userId");
-      Cookies.remove("nickname");
+
 
       set({ userId: "", nickname: "", isLoggedIn: false, isLoad: true });
     },

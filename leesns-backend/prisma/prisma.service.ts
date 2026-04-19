@@ -14,7 +14,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   async onModuleInit() {
-    // NestJS 앱이 켜질 때 DB와 자동으로 선을 연결해 주는 최적화 코드입니다.
+  
     await this.$connect();
   }
 }

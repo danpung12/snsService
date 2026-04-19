@@ -1,5 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { User } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Prisma, User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -12,7 +16,7 @@ export class AuthService {
   ) {}
 
   // 토큰 발급 (Passport 가드 통과 후 호출)
-  signToken(user: Pick<User, 'email' | 'id'>, isRefreshToken: boolean) {
+  signToken(user: Pick<User, 'id' | 'email'>, isRefreshToken: boolean) {
     const payload = {
       email: user.email,
       sub: user.id,
@@ -28,7 +32,7 @@ export class AuthService {
   }
 
   // 로그인 시 토큰 세트 반환
-  loginUser(user: Pick<User, 'email' | 'id'>) {
+  loginUser(user: Pick<User, 'id' | 'email'>) {
     return {
       accessToken: this.signToken(user, false),
       refreshToken: this.signToken(user, true),
@@ -44,7 +48,7 @@ export class AuthService {
       throw new UnauthorizedException('존재하지 않는 사용자입니다.');
     }
 
-    const passOk = await bcrypt.compare(user.password, found.password);
+    const passOk = await bcrypt.compare(user.password!, found.password!);
 
     if (!passOk) {
       throw new UnauthorizedException('비밀번호가 틀렸습니다.');
@@ -54,7 +58,7 @@ export class AuthService {
 
   // 회원가입
   async signup(user: Pick<User, 'nickname' | 'email' | 'password'>) {
-    const hash = await bcrypt.hash(user.password, 10);
+    const hash = await bcrypt.hash(user.password!, 10);
     const newUser = await this.usersService.createUser({
       ...user,
       password: hash,
@@ -73,56 +77,77 @@ export class AuthService {
     );
   }
 
-  // rotateToken(token: string, isRefreshToken: boolean) {
-  //   const decoded = this.verifyToken(token);
+  async googleLogin(profile: any) {
+    const providerId = profile.id;
+    const email = profile.emails[0].value;
+    const nickname = profile.displayName;
 
-  //   if (decoded.type !== 'refresh') {
-  //     throw new UnauthorizedException(
-  //       '토큰 재발급은 refresh Token으로만 가능합니다.',
-  //     );
-  //   }
+    const user = await this.usersService.findByProviderId(providerId);
 
-  //   return this.signToken(
-  //     {
-  //       ...decoded,
-  //     },
-  //     isRefreshToken,
-  //   );
-  // }
+    if (!user) {
+      const newUser = await this.usersService.createUser({
+        email: email,
+        nickname: nickname,
+        provider: 'google',
+        providerId: providerId,
+      });
 
-  // parseToken(header: string, isBearer: boolean) {
-  //   const splitToken = header.split(' ');
+      return this.loginUser(newUser);
+    }
 
-  //   const prefix = isBearer ? 'Bearer' : 'Basic';
+    return this.loginUser(user);
 
-  //   //토큰 구성이 2개가 아니거나, prefix가 안 맞거나.
-  //   if (splitToken.length !== 2 || splitToken[0] !== prefix) {
-  //     throw new UnauthorizedException('잘못된 토큰입니다.');
-  //   }
+    // rotateToken(token: string, isRefreshToken: boolean) {
+    //   const decoded = this.verifyToken(token);
 
-  //   const token = splitToken[1];
+    //   if (decoded.type !== 'refresh') {
+    //     throw new UnauthorizedException(
+    //       '토큰 재발급은 refresh Token으로만 가능합니다.',
+    //     );
+    //   }
 
-  //   return token;
-  // }
+    //   return this.signToken(
+    //     {
+    //       ...decoded,
+    //     },
+    //     isRefreshToken,
+    //   );
+    // }
 
-  // decodeBasicToken(base64String: string) {
-  //   const decoded = Buffer.from(base64String, 'base64').toString('utf8');
-  //   const split = decoded.split(':');
+    // parseToken(header: string, isBearer: boolean) {
+    //   const splitToken = header.split(' ');
 
-  //   if (split.length !== 2) {
-  //     throw new UnauthorizedException('잘못된 유형의 토큰입니다.');
-  //   }
+    //   const prefix = isBearer ? 'Bearer' : 'Basic';
 
-  //   const email = split[0];
-  //   const password = split[1];
+    //   //토큰 구성이 2개가 아니거나, prefix가 안 맞거나.
+    //   if (splitToken.length !== 2 || splitToken[0] !== prefix) {
+    //     throw new UnauthorizedException('잘못된 토큰입니다.');
+    //   }
 
-  //   return {
-  //     email,
-  //     password,
-  //   };
-  // }
+    //   const token = splitToken[1];
 
-  // verifyToken(token: string) {
-  //   return this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
-  // }
+    //   return token;
+    // }
+
+    // decodeBasicToken(base64String: string) {
+    //   const decoded = Buffer.from(base64String, 'base64').toString('utf8');
+    //   const split = decoded.split(':');
+
+    //   if (split.length !== 2) {
+    //     throw new UnauthorizedException('잘못된 유형의 토큰입니다.');
+    //   }
+
+    //   const email = split[0];
+    //   const password = split[1];
+
+    //   return {
+    //     email,
+    //     password,
+    //   };
+    // }
+
+    // verifyToken(token: string) {
+    //   return this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
+    // }
+  }
 }

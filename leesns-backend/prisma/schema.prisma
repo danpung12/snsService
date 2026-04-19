@@ -15,9 +15,12 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  password String         // 기존 비밀번호
+  id         String  @id @default(uuid())
+  email      String  @unique
+  nickname   String
 
-  email    String @unique // 기준으로 잡는 이메일
-  nickname String @unique // 프론트엔드에 응답으로 내려줄 닉네임
+  password   String? 
+
+  provider   String  @default("local")
+  providerId String? @unique
 }

@@ -4,6 +4,7 @@ import { API_URL } from "@/lib/api_url";
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
 api.interceptors.request.use(

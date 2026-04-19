@@ -21,7 +21,10 @@ export default function LogInPage() {
       window.alert("비밀번호를 입력해주세요");
     }
     Login({ email, password });
-    
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:4000/auth/google";
   };
 
   return (
@@ -44,6 +47,15 @@ export default function LogInPage() {
 
       <div>
         <Button className="w-full">로그인</Button>
+      </div>
+      <div>
+        <Button
+          className="w-full"
+          variant={"outline"}
+          onClick={handleGoogleLogin}
+        >
+          Google 계정으로 로그인
+        </Button>
       </div>
       <div>
         <Link
