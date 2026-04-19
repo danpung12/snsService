@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 export interface PostModel {
   id: number;
-  author: string;
+  nickname: string;
   title: string;
   content: string;
   likeCount: number;
@@ -12,7 +12,7 @@ export interface PostModel {
 let posts: PostModel[] = [
   {
     id: 1,
-    author: 'newjeans_official',
+    nickname: 'newjeans_official',
     title: '뉴진스 민지',
     content: '메이크업 고치고 있는 민지',
     likeCount: 1000,
@@ -20,7 +20,7 @@ let posts: PostModel[] = [
   },
   {
     id: 2,
-    author: 'newjeans_official',
+    nickname: 'newjeans_official',
     title: '뉴진스 해린',
     content: '노래 연습하고 있는 해린',
     likeCount: 1000,
@@ -28,7 +28,7 @@ let posts: PostModel[] = [
   },
   {
     id: 3,
-    author: 'blackpink_official',
+    nickname: 'blackpink_official',
     title: '블랙핑크 로제',
     content: '먹방 하고 있는 로제',
     likeCount: 1000,
@@ -46,10 +46,10 @@ export class PostsService {
     return posts.find((post) => post.id === +id);
   }
 
-  createPost(author: string, title: string, content: string) {
+  createPost(nickname: string, title: string, content: string) {
     const post: PostModel = {
       id: posts[posts.length - 1].id + 1,
-      author,
+      nickname,
       title,
       content,
       likeCount: 0,

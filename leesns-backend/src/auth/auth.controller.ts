@@ -12,14 +12,14 @@ import { JwtAuthGuard } from './strategy/jwt.strategy';
 import { RefreshAuthGuard } from './strategy/jwt-refresh.strategy';
 import { AuthGuard } from '@nestjs/passport';
 import { type Response } from 'express';
+import { GetUser } from 'src/users/decorator/user.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @UseGuards(AuthGuard('local'))
   @Post('login')
-  async loginUserPassport(@Req() req, @Res({ passthrough: true }) res) {
-    const user = req.user;
+  async loginUserPassport(@GetUser() user, @Res({ passthrough: true }) res) {
     const accessToken = await this.authService.signToken(user, false);
     const refreshToken = await this.authService.signToken(user, true);
 
@@ -55,8 +55,8 @@ export class AuthController {
   //토큰 재발급
   @Post('token/access')
   @UseGuards(RefreshAuthGuard)
-  async PostTokenAcess(@Req() req, @Res({ passthrough: true }) res) {
-    const newAccessToken = await this.authService.rotateToken(req.user, false);
+  async PostTokenAcess(@GetUser() user, @Res({ passthrough: true }) res) {
+    const newAccessToken = await this.authService.rotateToken(user, false);
 
     res.cookie('accessToken', newAccessToken, { httpOnly: true, path: '/' });
     return {
@@ -66,8 +66,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('private')
-  async private(@Req() req) {
-    return req.user;
+  async private(@GetUser() user) {
+    return user;
   }
 
   @Get('google')
@@ -76,10 +76,9 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
-    const { accessToken, refreshToken } = await this.authService.googleLogin(
-      req.user,
-    );
+  async googleAuthRedirect(@GetUser() user, @Res() res: Response) {
+    const { accessToken, refreshToken } =
+      await this.authService.googleLogin(user);
 
     res.cookie('accessToken', accessToken, { httpOnly: true, path: '/' });
     res.cookie('refreshToken', refreshToken, { httpOnly: true, path: '/' });

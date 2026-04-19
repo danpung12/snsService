@@ -1,6 +1,7 @@
 import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/strategy/jwt.strategy';
+import { GetUser } from './decorator/user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -8,9 +9,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMyProfile(@Request() req) {
-    const userId = req.user.sub;
-
+  async getMyProfile(@GetUser('id') userId: string) {
     const user = await this.usersService.findById(userId);
 
     return {
