@@ -1,10 +1,16 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findById(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
@@ -12,8 +18,7 @@ export class UsersService {
     });
   }
 
-  async createUser(user: Pick<User, 'email' | 'nickname' | 'password'>) {
-    
+  async createUser(user: Prisma.UserCreateInput) {
     const exists = await this.prisma.user.findFirst({
       where: {
         OR: [{ email: user.email }, { nickname: user.nickname }],
@@ -30,5 +35,9 @@ export class UsersService {
     const newUser = await this.prisma.user.create({ data: user });
 
     return newUser;
+  }
+
+  async findByProviderId(providerId: string) {
+    return this.prisma.user.findUnique({ where: { providerId } });
   }
 }

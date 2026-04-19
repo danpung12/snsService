@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthGuard, PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
+import { Request } from 'express';
 
 export class JwtAuthGuard extends AuthGuard('jwt') {}
 
@@ -8,7 +9,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {}
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: Request) => req?.cookies.accessToken || null,
       ignoreExpiration: false,
       secretOrKey: process.env.ACCESS_TOKEN_SECRET!,
     });
