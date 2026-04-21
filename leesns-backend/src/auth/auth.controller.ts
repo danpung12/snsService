@@ -13,13 +13,19 @@ import { RefreshAuthGuard } from './strategy/jwt-refresh.strategy';
 import { AuthGuard } from '@nestjs/passport';
 import { type Response } from 'express';
 import { GetUser } from 'src/users/decorator/user.decorator';
+import { LoginUserDto } from './dto/login-user.dto';
+import { SignupUserDto } from './dto/Signup-user.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @UseGuards(AuthGuard('local'))
   @Post('login')
-  async loginUserPassport(@GetUser() user, @Res({ passthrough: true }) res) {
+  async loginUserPassport(
+    @Body() _loginDto: LoginUserDto,
+    @GetUser() user,
+    @Res({ passthrough: true }) res,
+  ) {
     const accessToken = await this.authService.signToken(user, false);
     const refreshToken = await this.authService.signToken(user, true);
 
@@ -29,16 +35,10 @@ export class AuthController {
 
   @Post('signup')
   async signup(
-    @Body('nickname') nickname: string,
-    @Body('email') email: string,
-    @Body('password') password: string,
+    @Body() signupDto: SignupUserDto,
     @Res({ passthrough: true }) res,
   ) {
-    const tokens = await this.authService.signup({
-      nickname,
-      email,
-      password,
-    });
+    const tokens = await this.authService.signup(signupDto);
 
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,

@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreatePostDto } from './dto/create-post.dto';
+import { updatePostDto } from './dto/update-post.dto';
 
 export interface PostModel {
   id: number;
@@ -46,12 +48,11 @@ export class PostsService {
     return posts.find((post) => post.id === +id);
   }
 
-  createPost(nickname: string, title: string, content: string) {
+  createPost(nickname: string, postDto: CreatePostDto) {
     const post: PostModel = {
       id: posts[posts.length - 1].id + 1,
       nickname,
-      title,
-      content,
+      ...postDto,
       likeCount: 0,
       commentCount: 0,
     };
@@ -61,13 +62,15 @@ export class PostsService {
     return post;
   }
 
-  updatePost(id: number, title?: string, content?: string) {
+  updatePost(id: number, postDto: updatePostDto) {
     const post = this.getPostbyId(id);
     if (!post) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
-    if (title) post.title = title;
-    if (content) post.content = content;
+    Object.assign(post, postDto);
+    // if (title) post.title = title;
+    // if (content) post.content = content;
+
     return post;
   }
 
