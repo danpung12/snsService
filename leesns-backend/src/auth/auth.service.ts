@@ -70,7 +70,7 @@ export class AuthService {
   rotateToken(user: any, isRefreshToken: boolean) {
     return this.signToken(
       {
-        id: user.sub, // 또는
+        id: user.id, // 또는
         email: user.email,
       },
       isRefreshToken,

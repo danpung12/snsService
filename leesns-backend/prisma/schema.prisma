@@ -24,3 +24,12 @@ model User {
   provider   String  @default("local")
   providerId String? @unique
 }
+
+model Post {
+  id            Int @id @default(autoincrement())
+  author      String 
+  content       String
+  likeCount     Int @default(0)
+  commentCount  Int @default(0)
+  created_at   DateTime @default(now())
+}

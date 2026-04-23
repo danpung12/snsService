@@ -7,7 +7,7 @@ export class BaseUserDto {
   email!: string;
 
   @IsString()
-  @Length(8, 20, { message: lengthValidationMessage })
+  @Length(6, 20, { message: lengthValidationMessage })
   password!: string;
 
   @IsString()

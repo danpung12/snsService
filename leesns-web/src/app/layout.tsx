@@ -10,6 +10,7 @@ import { SunIcon } from "lucide-react";
 import defaultavatar from "@/assets/default-avatar.png";
 import localFont from "next/font/local";
 import ModalProvider from "@/components/modal-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const pretendard = localFont({
   src: "../assets/fonts/PretendardVariable.woff2",
@@ -37,6 +38,7 @@ export default function RootLayout({
         <Provider>
           <AuthProvider>
             <ModalProvider>
+              <Toaster />
               <div className="flex flex-col min-h-[100vh]">
                 <header className="h-15 border-b">
                   <div className="flex  h-full justify-between max-w-175 w-full px-4 m-auto">
