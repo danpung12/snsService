@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
@@ -14,6 +15,7 @@ import { GetUser } from 'src/users/decorator/user.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { JwtAuthGuard } from 'src/auth/strategy/jwt.strategy';
 import { updatePostDto } from './dto/update-post.dto';
+import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -22,8 +24,8 @@ export class PostsController {
   // 모든 post를 다 가져온다.
   @Get()
   @UseGuards(JwtAuthGuard)
-  getPosts() {
-    return this.postsService.getAllPosts();
+  getPosts(@Query() pagnationDto: CursorPaginationDto) {
+    return this.postsService.getAllPosts(pagnationDto);
   }
   // id에 해당되는 post를 가져온다
   @Get(':id')
@@ -57,5 +59,12 @@ export class PostsController {
   @Delete(':id')
   deletePost(@Param('id', ParseIntPipe) id: number) {
     return this.postsService.deletePost(id);
+  }
+  @Post('mock/:userId')
+  async generatePosts(@Param('userId', ParseIntPipe) userId: number) {
+    await this.postsService.mockPosts(userId);
+    return {
+      message: `${userId}번 유저의 더미 게시글 100개가 성공적으로 생성되었습니다!`,
+    };
   }
 }

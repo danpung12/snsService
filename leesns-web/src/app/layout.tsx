@@ -40,7 +40,7 @@ export default function RootLayout({
             <ModalProvider>
               <Toaster />
               <div className="flex flex-col min-h-[100vh]">
-                <header className="h-15 border-b">
+                <header className="bg-background/95 sticky top-0 z-50 h-15 border-b backdrop-blur">
                   <div className="flex  h-full justify-between max-w-175 w-full px-4 m-auto">
                     <Link href={"/"} className="flex items-center gap-2">
                       <Image src={logo} alt="로고" className="h-5 w-auto" />

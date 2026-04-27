@@ -1,5 +1,6 @@
+"use client";
+
 import { HeartIcon, MessageCircle } from "lucide-react";
-import type { Post } from "@/types";
 import defaultAvatar from "@/assets/default-avatar.png";
 import {
   Carousel,
@@ -10,8 +11,19 @@ import Image from "next/image";
 import { formatTimeAgo } from "@/lib/time";
 import EditPostItemButton from "./edit-post-item-button";
 import DeletePostItemButton from "./delete-post-item-button";
+import { usePostByIdData } from "@/hooks/use-post-by-id-data";
 
-export default function PostItem(post: Post) {
+export default function PostItem({ postId }: { postId: number }) {
+  const { data: post, error } = usePostByIdData(postId);
+
+  if (error || !post) {
+    return (
+      <div className="text-muted-foreground rounded-lg border p-6 text-center text-sm">
+        게시글을 표시할 수 없습니다.
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 border-b pb-8">
       {/* 1. 유저 정보, 수정/삭제 버튼 */}

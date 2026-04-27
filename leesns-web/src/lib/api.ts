@@ -26,10 +26,10 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: {
   resolve: (value?: unknown) => void;
-  reject: (err: any) => void;
+  reject: (err: unknown) => void;
 }[] = [];
 
-const processQueue = (error: any = null) => {
+const processQueue = (error: unknown = null) => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
     else prom.resolve();

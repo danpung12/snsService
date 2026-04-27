@@ -12,7 +12,7 @@ async function bootstrap() {
     credentials: true, // "나중에 쿠키나 인증 헤더 같은 것도 통과시켜 줘!"
   });
 
-  app.useGlobalPipes(new ValidationPipe())
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   await app.listen(process.env.PORT ?? 4000);
 }
