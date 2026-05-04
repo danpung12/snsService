@@ -34,7 +34,7 @@ export default function PostFeed() {
 
   if (error) {
     return (
-      <div className="text-muted-foreground rounded-lg border p-6 text-center text-sm">
+      <div className="text-muted-foreground rounded-lg border p-8 text-center text-sm">
         게시글을 불러오지 못했습니다.
       </div>
     );
@@ -42,7 +42,7 @@ export default function PostFeed() {
 
   if (isPending) {
     return (
-      <div className="text-muted-foreground py-10 text-center text-sm">
+      <div className="text-muted-foreground py-14 text-center text-sm">
         게시글을 불러오는 중...
       </div>
     );
@@ -52,20 +52,22 @@ export default function PostFeed() {
 
   if (isEmpty) {
     return (
-      <div className="text-muted-foreground rounded-lg border p-6 text-center text-sm">
+      <div className="text-muted-foreground rounded-lg border py-14 text-center text-sm">
         아직 게시글이 없습니다.
       </div>
     );
   }
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-2">
       {data.pages.map((page) =>
-        page.postIds.map((postId) => <PostItem key={postId} postId={postId} />),
+        page.postIds.map((postId) => (
+          <PostItem key={postId} postId={postId} type="FEED" />
+        )),
       )}
 
       {isFetchingNextPage && (
-        <div className="text-muted-foreground py-4 text-center text-sm">
+        <div className="text-muted-foreground py-6 text-center text-sm">
           더 불러오는 중...
         </div>
       )}

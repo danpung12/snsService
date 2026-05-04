@@ -5,7 +5,7 @@ export class CursorPaginationDto {
   @Type(() => Number)
   @IsInt()
   @IsOptional()
-  cursor: number = 1;
+  cursor?: number;
 
   @Type(() => Number)
   @IsInt()

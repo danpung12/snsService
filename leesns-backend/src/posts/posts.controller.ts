@@ -37,13 +37,13 @@ export class PostsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   postPost(
-    @GetUser('nickname') nickname: string,
+    @GetUser('id') id: string,
 
     @Body() body: CreatePostDto,
     // @Body('title') title: string,
     // @Body('content') content: string,
   ) {
-    return this.postsService.createPost(nickname, body);
+    return this.postsService.createPost(id, body);
   }
 
   // id에 해당되는 POST를 변경한다.

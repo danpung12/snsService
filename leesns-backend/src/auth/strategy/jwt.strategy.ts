@@ -26,5 +26,5 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // 커스텀 데코레이터에서 타입지정을 User 테이블로 해 버리니까
   // 커스텀 데코레이터에서 (sub)를 못 받음. User테이블에는 id로 저장돼있으니까.
   // 그래서 (id) 로 넣으면 토큰에서는 sub로 저장돼있으니 인식을 못함.
-  // 그래서 payload.sub 로 user를 불러와 그 안의 id로 다시 저장하게 한 거임. 
+  // 그래서 payload.sub 로 user를 불러와 그 안의 id로 다시 저장하게 한 거임.
 }

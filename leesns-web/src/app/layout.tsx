@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/auth-provider";
 import Provider from "@/components/query-provider";
@@ -7,10 +7,10 @@ import Link from "next/link";
 import logo from "@/assets/logo.png";
 import Image from "next/image";
 import { SunIcon } from "lucide-react";
-import defaultavatar from "@/assets/default-avatar.png";
 import localFont from "next/font/local";
 import ModalProvider from "@/components/modal-provider";
 import { Toaster } from "@/components/ui/sonner";
+import ProfileButton from "@/components/layout/header/profile-button";
 
 const pretendard = localFont({
   src: "../assets/fonts/PretendardVariable.woff2",
@@ -39,29 +39,25 @@ export default function RootLayout({
           <AuthProvider>
             <ModalProvider>
               <Toaster />
-              <div className="flex flex-col min-h-[100vh]">
+              <div className="flex min-h-[100vh] flex-col">
                 <header className="bg-background/95 sticky top-0 z-50 h-15 border-b backdrop-blur">
-                  <div className="flex  h-full justify-between max-w-175 w-full px-4 m-auto">
+                  <div className="m-auto flex h-full w-full max-w-175 justify-between px-4">
                     <Link href={"/"} className="flex items-center gap-2">
                       <Image src={logo} alt="로고" className="h-5 w-auto" />
                       <div className="font-bold">공통 헤더</div>
                     </Link>
                     <div className="flex items-center gap-5">
-                      <div className="hover:bg-muted cursor-pointer p-2 rounded-full">
+                      <div className="hover:bg-muted cursor-pointer rounded-full p-2">
                         <SunIcon />
                       </div>
-                      <Image
-                        src={defaultavatar}
-                        alt="기본아바타"
-                        className="h-6 w-auto"
-                      />
+                      <ProfileButton />
                     </div>
                   </div>
                 </header>
-                <main className="flex-1 py-6 max-w-175 m-auto px-4 w-full">
+                <main className="m-auto w-full max-w-175 flex-1 px-4 py-6">
                   {children}
                 </main>
-                <footer className="text-center py-10 border-t text-muted-foreground">
+                <footer className="text-muted-foreground border-t py-10 text-center">
                   @aass6863
                 </footer>
               </div>

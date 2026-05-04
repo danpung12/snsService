@@ -17,6 +17,14 @@ export class PostsService {
       where: cursor ? { id: { lt: cursor } } : undefined,
       take: take + 1,
       orderBy: { id: 'desc' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
     });
 
     const hasNextPage = posts[take] != null;
@@ -31,7 +39,17 @@ export class PostsService {
 
   // id에 해당하는 Post를 조회한다.
   async getPostbyId(id: number) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
+    });
 
     if (!post) {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
@@ -40,11 +58,19 @@ export class PostsService {
     return post;
   }
 
-  createPost(nickname: string, postDto: CreatePostDto) {
+  createPost(userid: string, postDto: CreatePostDto) {
     return this.prisma.post.create({
       data: {
-        author: nickname,
+        authorId: userid,
         ...postDto,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
       },
     });
   }
@@ -55,6 +81,14 @@ export class PostsService {
     return await this.prisma.post.update({
       where: { id },
       data: postDto,
+      include: {
+        author: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
     });
   }
 
@@ -69,9 +103,9 @@ export class PostsService {
   async mockPosts(userId: number) {
     const dummyData = Array.from({ length: 100 }, () => ({
       //  Faker가 그럴싸한 랜덤 데이터를 채워줍니다.
-      author: faker.person.fullName(), 
+      authorId: faker.person.fullName(),
       content: faker.lorem.paragraphs(3),
-      likeCount: faker.number.int({ min: 0, max: 500 }), 
+      likeCount: faker.number.int({ min: 0, max: 500 }),
       commentCount: faker.number.int({ min: 0, max: 50 }),
     }));
 
