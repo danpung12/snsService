@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { GetUser } from 'src/users/decorator/user.decorator';
@@ -16,8 +17,11 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { JwtAuthGuard } from 'src/auth/strategy/jwt.strategy';
 import { updatePostDto } from './dto/update-post.dto';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
+import { ResponseTimeInterceptor } from 'src/common/interceptors/response-time.interceptor';
+import { CacheInterceptor } from 'src/common/interceptors/cache.interceptor';
 
 @Controller('posts')
+@UseInterceptors(ResponseTimeInterceptor, CacheInterceptor)
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
