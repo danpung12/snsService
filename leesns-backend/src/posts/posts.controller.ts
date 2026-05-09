@@ -29,6 +29,7 @@ export class PostsController {
   @Get()
   @UseGuards(JwtAuthGuard)
   getPosts(@Query() pagnationDto: CursorPaginationDto) {
+
     return this.postsService.getAllPosts(pagnationDto);
   }
   // id에 해당되는 post를 가져온다

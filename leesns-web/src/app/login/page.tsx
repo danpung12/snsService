@@ -2,25 +2,30 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLogin } from "@/hooks/use-auth";
 import Link from "next/link";
 import { useState } from "react";
-import { useLogin } from "@/hooks/use-auth";
 
 export default function LogInPage() {
-  const { mutate: Login } = useLogin();
+  const { mutate: login } = useLogin();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const onSubmit = (e: React.SubmitEvent) => {
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (email.trim() === "") {
       window.alert("아이디를 입력해주세요");
+      return;
     }
+
     if (password.trim() === "") {
       window.alert("비밀번호를 입력해주세요");
+      return;
     }
-    Login({ email, password });
+
+    login({ email, password });
   };
 
   const handleGoogleLogin = () => {
@@ -28,13 +33,13 @@ export default function LogInPage() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-8 max-w-sm mx-auto">
-      <div className="text-xl flex flex-col gap-8 font-bold  ">로그인</div>
+    <form onSubmit={onSubmit} className="mx-auto flex max-w-sm flex-col gap-8">
+      <div className="flex flex-col gap-8 text-xl font-bold">로그인</div>
       <div className="flex flex-col gap-2">
         <Input
           onChange={(e) => setEmail(e.target.value)}
           className="py-6"
-          type="id"
+          type="email"
           placeholder="example@abc.com"
         />
         <Input
@@ -46,22 +51,22 @@ export default function LogInPage() {
       </div>
 
       <div>
-        <Button className="w-full">로그인</Button>
+        <Button type="submit" className="w-full">
+          로그인
+        </Button>
       </div>
       <div>
         <Button
+          type="button"
           className="w-full"
-          variant={"outline"}
+          variant="outline"
           onClick={handleGoogleLogin}
         >
           Google 계정으로 로그인
         </Button>
       </div>
       <div>
-        <Link
-          className="text-muted-foreground hover:underline"
-          href={"/signup"}
-        >
+        <Link className="text-muted-foreground hover:underline" href="/signup">
           계정이 없으시다면? 회원가입
         </Link>
       </div>

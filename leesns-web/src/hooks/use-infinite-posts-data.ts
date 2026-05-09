@@ -13,15 +13,16 @@ export type PostIdsPage = {
   hasNextPage: boolean;
 };
 
-export function useInfinitePostsData() {
+export function useInfinitePostsData(authorId?: string) {
   const queryClient = useQueryClient();
 
   return useInfiniteQuery({
-    queryKey: QUERY_KEYS.post.list,
+    queryKey: authorId ? QUERY_KEYS.post.userList(authorId) : QUERY_KEYS.post.list,
     queryFn: async ({ pageParam }) => {
       const page = await fetchPosts({
         cursor: pageParam,
         take: POSTS_PAGE_SIZE,
+        authorId,
       });
 
       page.data.forEach((post: Post) => {

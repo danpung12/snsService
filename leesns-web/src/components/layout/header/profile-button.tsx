@@ -1,17 +1,16 @@
 "use client";
 
+import defaultAvatar from "@/assets/default-avatar.png";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-import defaultAvatar from "@/assets/default-avatar.png";
-import { Popover as PopoverPrimitive } from "radix-ui";
-import Link from "next/link";
-import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
 import { useSetLogout, useUserId } from "@/store/auth";
+import Cookies from "js-cookie";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Popover as PopoverPrimitive } from "radix-ui";
 
 export default function ProfileButton() {
   const userId = useUserId();
@@ -27,6 +26,7 @@ export default function ProfileButton() {
   };
 
   if (!userId) return null;
+
   return (
     <Popover>
       <PopoverTrigger>

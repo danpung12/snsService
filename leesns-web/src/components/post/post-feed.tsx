@@ -4,7 +4,7 @@ import PostItem from "@/components/post/post-item";
 import { useInfinitePostsData } from "@/hooks/use-infinite-posts-data";
 import { useEffect, useRef } from "react";
 
-export default function PostFeed() {
+export default function PostFeed({ authorId }: { authorId?: string }) {
   const {
     data,
     error,
@@ -12,7 +12,7 @@ export default function PostFeed() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfinitePostsData();
+  } = useInfinitePostsData(authorId);
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

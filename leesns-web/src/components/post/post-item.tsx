@@ -112,11 +112,21 @@ export default function PostItem({
               {imageUrls.map((url, index) => (
                 <CarouselItem className="basis-4/5 md:basis-3/5" key={url}>
                   <div className="overflow-hidden rounded-lg border bg-muted">
-                    <img
-                      src={url}
-                      className="max-h-[350px] w-full object-cover"
-                      alt={`게시글 첨부 이미지 ${index + 1}`}
-                    />
+                    {type === "FEED" ? (
+                      <Link href={`/post/${post.id}`}>
+                        <img
+                          src={url}
+                          className="max-h-[350px] w-full cursor-pointer object-cover"
+                          alt={`게시글 첨부 이미지 ${index + 1}`}
+                        />
+                      </Link>
+                    ) : (
+                      <img
+                        src={url}
+                        className="max-h-[350px] w-full object-cover"
+                        alt={`게시글 첨부 이미지 ${index + 1}`}
+                      />
+                    )}
                   </div>
                 </CarouselItem>
               ))}

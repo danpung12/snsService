@@ -9,12 +9,14 @@ export interface CreatePostPayload {
 export async function fetchPosts({
   cursor = 0,
   take = 5,
+  authorId,
 }: {
   cursor?: number;
   take?: number;
+  authorId?: string;
 }) {
   const response = await api.get<CursorPaginatedPosts>("/posts", {
-    params: { cursor, take },
+    params: { cursor, take, authorId },
   });
   return response.data;
 }

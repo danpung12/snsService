@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CursorPaginationDto {
   @Type(() => Number)
@@ -11,4 +11,9 @@ export class CursorPaginationDto {
   @IsInt()
   @IsOptional()
   take: number = 5;
+
+  @IsString()
+  @IsOptional()
+  authorId?: string;
+
 }

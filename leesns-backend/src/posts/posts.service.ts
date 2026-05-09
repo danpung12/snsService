@@ -28,10 +28,10 @@ export class PostsService {
 
   // Post를 전체 조회한다.
   async getAllPosts(paginationDto: CursorPaginationDto) {
-    const { cursor, take = 5 } = paginationDto;
+    const { cursor, take = 5, authorId } = paginationDto;
 
     const posts = await this.prisma.post.findMany({
-      where: cursor ? { id: { lt: cursor } } : undefined,
+      where: { authorId, ...(cursor ? { id: { lt: cursor } } : undefined) },
       take: take + 1,
       orderBy: { id: 'desc' },
       include: {
