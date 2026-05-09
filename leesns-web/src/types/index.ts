@@ -10,12 +10,22 @@ export interface PostAuthor {
   avatar_url?: string | null;
 }
 
+export interface PostImage {
+  id: number;
+  url: string;
+  order: number;
+  createdAt?: string | Date;
+  postId?: number;
+}
+
 export interface Post {
   id: number;
   author: PostAuthor;
   authorId: string;
   content: string;
   created_at: string | Date;
+  images?: PostImage[];
+  image?: string | null;
   image_urls?: string[];
   likeCount?: number;
   commentCount?: number;

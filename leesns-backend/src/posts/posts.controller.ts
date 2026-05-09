@@ -21,7 +21,7 @@ import { ResponseTimeInterceptor } from 'src/common/interceptors/response-time.i
 import { CacheInterceptor } from 'src/common/interceptors/cache.interceptor';
 
 @Controller('posts')
-@UseInterceptors(ResponseTimeInterceptor, CacheInterceptor)
+@UseInterceptors(ResponseTimeInterceptor)
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
@@ -42,8 +42,8 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   postPost(
     @GetUser('id') id: string,
-
     @Body() body: CreatePostDto,
+
     // @Body('title') title: string,
     // @Body('content') content: string,
   ) {

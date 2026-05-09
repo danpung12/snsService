@@ -11,7 +11,10 @@ export default function EditPostItemButton(props: Post) {
     openEditPostModal({
       postId: props.id,
       content: props.content,
-      imageUrls: props.image_urls || null,
+      imageUrls:
+        props.images?.map((image) => image.url) ||
+        props.image_urls ||
+        (props.image ? [props.image] : null),
     });
   };
 

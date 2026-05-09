@@ -1,8 +1,9 @@
 import api from "@/lib/api";
 import type { CursorPaginatedPosts, Post } from "@/types";
 
-interface CreatePostPayload {
+export interface CreatePostPayload {
   content: string;
+  images?: string[];
 }
 
 export async function fetchPosts({

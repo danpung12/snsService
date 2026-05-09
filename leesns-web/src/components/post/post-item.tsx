@@ -11,8 +11,22 @@ import { formatTimeAgo } from "@/lib/time";
 import EditPostItemButton from "./edit-post-item-button";
 import DeletePostItemButton from "./delete-post-item-button";
 import { usePostByIdData } from "@/hooks/use-post-by-id-data";
+import { toBackendImageUrl } from "@/lib/image-url";
 import Link from "next/link";
 import { useUserId } from "@/store/auth";
+import type { Post } from "@/types";
+
+function getPostImageUrls(post: Post) {
+  const imageUrls = [
+    ...(post.images?.map((image) => image.url) ?? []),
+    post.image,
+    ...(post.image_urls ?? []),
+  ]
+    .filter((url): url is string => Boolean(url))
+    .map(toBackendImageUrl);
+
+  return Array.from(new Set(imageUrls));
+}
 
 export default function PostItem({
   postId,
@@ -46,6 +60,7 @@ export default function PostItem({
     avatar_url: null,
   };
   const isMine = post.authorId === userId || author.id === userId;
+  const imageUrls = getPostImageUrls(post);
 
   return (
     <article
@@ -58,7 +73,7 @@ export default function PostItem({
           <Link href={author.id ? `/profile/${author.id}` : "#"}>
             <img
               src={author.avatar_url || defaultAvatar.src}
-              alt={`${author.nickname} 프로필 이미지`}
+              alt={`${author.nickname}의 프로필 이미지`}
               className="h-10 w-10 rounded-full object-cover"
             />
           </Link>
@@ -91,16 +106,16 @@ export default function PostItem({
           </div>
         )}
 
-        {post.image_urls && post.image_urls.length > 0 && (
+        {imageUrls.length > 0 && (
           <Carousel>
             <CarouselContent>
-              {post.image_urls.map((url, index) => (
-                <CarouselItem className="basis-3/5" key={index}>
-                  <div className="overflow-hidden rounded-lg">
+              {imageUrls.map((url, index) => (
+                <CarouselItem className="basis-4/5 md:basis-3/5" key={url}>
+                  <div className="overflow-hidden rounded-lg border bg-muted">
                     <img
                       src={url}
-                      className="h-full max-h-[350px] w-full object-cover"
-                      alt="게시글 첨부 이미지"
+                      className="max-h-[350px] w-full object-cover"
+                      alt={`게시글 첨부 이미지 ${index + 1}`}
                     />
                   </div>
                 </CarouselItem>

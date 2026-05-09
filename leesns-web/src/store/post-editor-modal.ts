@@ -27,6 +27,7 @@ type State = {
   type?: "CREATE" | "EDIT";
   postId?: number;
   content?: string;
+  imageUrls?: string[] | null;
 };
 
 const initialState = {

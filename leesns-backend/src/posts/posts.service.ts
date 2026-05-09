@@ -4,10 +4,27 @@ import { updatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { faker } from '@faker-js/faker/locale/ko';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
+import { promises } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private ImagePath(image: string | null) {
+    return image ? `/${process.env.POST_IMAGE_PATH}/${image}` : null;
+  }
+
+  private async movePostImage(image: string | null) {
+    if (!image) {
+      return null;
+    }
+
+    await promises.rename(
+      join(process.cwd(), process.env.POST_TEMP_IAMGE_PATH!, image),
+      join(process.cwd(), process.env.POST_IMAGE_PATH!, image),
+    );
+  }
 
   // Post를 전체 조회한다.
   async getAllPosts(paginationDto: CursorPaginationDto) {
@@ -24,11 +41,20 @@ export class PostsService {
             nickname: true,
           },
         },
+        images: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
     const hasNextPage = posts[take] != null;
-    const data = posts.slice(0, take);
+    const data = posts.slice(0, take).map((post) => ({
+      ...post,
+      images: post.images.map((image) => ({
+        ...image,
+        url: this.ImagePath(image.url),
+      })),
+    }));
 
     return {
       data,
@@ -48,6 +74,7 @@ export class PostsService {
             nickname: true,
           },
         },
+        images: true,
       },
     });
 
@@ -55,14 +82,30 @@ export class PostsService {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    return post;
+    return {
+      ...post,
+      images: post.images.map((image) => ({
+        ...image,
+        url: this.ImagePath(image.url),
+      })),
+    };
   }
 
-  createPost(userid: string, postDto: CreatePostDto) {
-    return this.prisma.post.create({
+  async createPost(userid: string, postDto: CreatePostDto) {
+    const { images = [], ...postData } = postDto;
+
+    await Promise.all(images.map((image) => this.movePostImage(image)));
+
+    const post = await this.prisma.post.create({
       data: {
         authorId: userid,
-        ...postDto,
+        ...postData,
+        images: {
+          create: images.map((image, index) => ({
+            url: image,
+            order: index,
+          })),
+        },
       },
       include: {
         author: {
@@ -71,16 +114,35 @@ export class PostsService {
             nickname: true,
           },
         },
+        images: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
       },
     });
+
+    return {
+      ...post,
+      images: post.images.map((image) => ({
+        ...image,
+        url: this.ImagePath(image.url),
+      })),
+    };
   }
 
   async updatePost(id: number, postDto: updatePostDto) {
     await this.getPostbyId(id);
 
-    return await this.prisma.post.update({
+    const { images, ...postData } = postDto;
+
+    if (images) {
+      await Promise.all(images.map((image) => this.movePostImage(image)));
+    }
+
+    const post = await this.prisma.post.update({
       where: { id },
-      data: postDto,
+      data: postData,
       include: {
         author: {
           select: {
@@ -88,8 +150,18 @@ export class PostsService {
             nickname: true,
           },
         },
+        images: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
+    return {
+      ...post,
+      images: post.images.map((image) => ({
+        ...image,
+        url: this.ImagePath(image.url),
+      })),
+    };
   }
 
   async deletePost(id: number) {

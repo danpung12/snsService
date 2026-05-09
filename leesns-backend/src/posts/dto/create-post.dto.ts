@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreatePostDto {
   @IsString({
@@ -6,4 +6,8 @@ export class CreatePostDto {
   })
   @IsString()
   content!: string;
+
+  @IsString({ each: true })
+  @IsOptional()
+  images?: string[];
 }
