@@ -25,6 +25,7 @@ model User {
   providerId String? @unique
   posts Post[]
   comments Comment[]
+  postLike  PostLike[]
 }
 
 model Post {
@@ -33,9 +34,14 @@ model Post {
   images         PostImage[]
 
   likeCount     Int @default(0)
+  likes PostLike[]
+
   commentCount  Int @default(0)
   created_at   DateTime @default(now())
   comments Comment[]
+
+  
+  
 
   authorId String
   author User @relation(fields: [authorId], references: [id])
@@ -51,6 +57,18 @@ model PostImage{
   postId Int
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+}
+
+model PostLike {
+
+  id  Int @id @default(autoincrement())
+  userId  String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId  Int
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, postId])
 }
 
 model Comment{

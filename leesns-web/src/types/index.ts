@@ -28,7 +28,13 @@ export interface Post {
   image?: string | null;
   image_urls?: string[];
   likeCount?: number;
+  isLiked?: boolean;
   commentCount?: number;
+}
+
+export interface TogglePostLikeResponse {
+  likeCount: number;
+  isLiked: boolean;
 }
 
 export interface CursorPaginatedPosts {

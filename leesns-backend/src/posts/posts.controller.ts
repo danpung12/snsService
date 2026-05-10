@@ -28,14 +28,17 @@ export class PostsController {
   // 모든 post를 다 가져온다.
   @Get()
   @UseGuards(JwtAuthGuard)
-  getPosts(@Query() pagnationDto: CursorPaginationDto) {
-
-    return this.postsService.getAllPosts(pagnationDto);
+  getPosts(
+    @Query() pagnationDto: CursorPaginationDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.postsService.getAllPosts(pagnationDto, userId);
   }
   // id에 해당되는 post를 가져온다
   @Get(':id')
-  getPost(@Param('id', ParseIntPipe) id: number) {
-    return this.postsService.getPostbyId(id);
+  @UseGuards(JwtAuthGuard)
+  getPost(@Param('id', ParseIntPipe) id: number, @GetUser('id') userId: string) {
+    return this.postsService.getPostbyId(id, userId);
   }
 
   // POST를 생성한다.
@@ -71,5 +74,14 @@ export class PostsController {
     return {
       message: `${userId}번 유저의 더미 게시글 100개가 성공적으로 생성되었습니다!`,
     };
+  }
+
+  @Post(':postId/like')
+  @UseGuards(JwtAuthGuard)
+  async togglePostLike(
+    @Param('postId', ParseIntPipe) postId: number,
+    @GetUser('id') userId: string,
+  ) {
+    return this.postsService.togglePostLike(postId, userId);
   }
 }

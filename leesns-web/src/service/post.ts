@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import type { CursorPaginatedPosts, Post } from "@/types";
+import type { CursorPaginatedPosts, Post, TogglePostLikeResponse } from "@/types";
 
 export interface CreatePostPayload {
   content: string;
@@ -42,5 +42,10 @@ export async function updatePost(payload: { id: number; content: string }) {
 export async function deletePost(id: number) {
   const response = await api.delete(`/posts/${id}`);
 
+  return response.data;
+}
+
+export async function togglePostLike(postId: number) {
+  const response = await api.post<TogglePostLikeResponse>(`/posts/${postId}/like`);
   return response.data;
 }

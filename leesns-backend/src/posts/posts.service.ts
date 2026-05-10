@@ -26,8 +26,21 @@ export class PostsService {
     );
   }
 
+  private formatPost(post) {
+    return {
+      ...post,
+      // 좋아요
+      isLiked: post.likes.length > 0,
+      // 이미지 파싱
+      images: post.images.map((image) => ({
+        ...image,
+        url: this.ImagePath(image.url),
+      })),
+    };
+  }
+
   // Post를 전체 조회한다.
-  async getAllPosts(paginationDto: CursorPaginationDto) {
+  async getAllPosts(paginationDto: CursorPaginationDto, userId: string) {
     const { cursor, take = 5, authorId } = paginationDto;
 
     const posts = await this.prisma.post.findMany({
@@ -41,6 +54,11 @@ export class PostsService {
             nickname: true,
           },
         },
+        likes: {
+          where: { userId },
+          select: { id: true },
+        },
+
         images: {
           orderBy: { order: 'asc' },
         },
@@ -48,13 +66,7 @@ export class PostsService {
     });
 
     const hasNextPage = posts[take] != null;
-    const data = posts.slice(0, take).map((post) => ({
-      ...post,
-      images: post.images.map((image) => ({
-        ...image,
-        url: this.ImagePath(image.url),
-      })),
-    }));
+    const data = posts.slice(0, take).map((post) => this.formatPost(post));
 
     return {
       data,
@@ -64,7 +76,7 @@ export class PostsService {
   }
 
   // id에 해당하는 Post를 조회한다.
-  async getPostbyId(id: number) {
+  async getPostbyId(id: number, userId?: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
@@ -74,7 +86,11 @@ export class PostsService {
             nickname: true,
           },
         },
-        images: true,
+        likes: { where: { userId }, select: { id: true } },
+
+        images: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
@@ -82,13 +98,7 @@ export class PostsService {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    return {
-      ...post,
-      images: post.images.map((image) => ({
-        ...image,
-        url: this.ImagePath(image.url),
-      })),
-    };
+    return this.formatPost(post);
   }
 
   async createPost(userid: string, postDto: CreatePostDto) {
@@ -185,5 +195,63 @@ export class PostsService {
     await this.prisma.post.createMany({
       data: dummyData,
     });
+  }
+
+  async togglePostLike(postId: number, userId: string) {
+    // 게시글 먼저 있는지 확인
+    await this.getPostbyId(postId);
+
+    // 게시글에 유저가 누른 기록이 있는지 확인. 있으면 true
+    const postLike = await this.prisma.postLike.findUnique({
+      where: { userId_postId: { userId, postId } },
+    });
+
+    // true 이면 해당 누른 기록(userId_postId) 을 지움.
+    if (postLike) {
+      await this.prisma.postLike.delete({
+        where: {
+          userId_postId: {
+            userId,
+            postId,
+          },
+        },
+      });
+
+      const post = await this.prisma.post.update({
+        where: { id: postId },
+        data: {
+          likeCount: {
+            decrement: 1,
+          },
+        },
+      });
+
+      return {
+        likeCount: post.likeCount,
+        isLiked: false,
+      };
+    } else {
+      // false이면 누른 기록을 새로 만듬.
+      await this.prisma.postLike.create({
+        data: {
+          userId,
+          postId,
+        },
+      });
+
+      const post = await this.prisma.post.update({
+        where: { id: postId },
+        data: {
+          likeCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      return {
+        likeCount: post.likeCount,
+        isLiked: true,
+      };
+    }
   }
 }

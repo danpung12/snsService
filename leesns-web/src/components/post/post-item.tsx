@@ -1,6 +1,6 @@
 "use client";
 
-import { HeartIcon, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import defaultAvatar from "@/assets/default-avatar.png";
 import {
   Carousel,
@@ -10,6 +10,7 @@ import {
 import { formatTimeAgo } from "@/lib/time";
 import EditPostItemButton from "./edit-post-item-button";
 import DeletePostItemButton from "./delete-post-item-button";
+import LikePostButton from "./like-post-button";
 import { usePostByIdData } from "@/hooks/use-post-by-id-data";
 import { toBackendImageUrl } from "@/lib/image-url";
 import Link from "next/link";
@@ -136,10 +137,11 @@ export default function PostItem({
       </div>
 
       <div className="mt-auto flex gap-2">
-        <div className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm">
-          <HeartIcon className="h-4 w-4" />
-          <span>{post.likeCount ?? 0}</span>
-        </div>
+        <LikePostButton
+          id={post.id}
+          likeCount={post.likeCount ?? 0}
+          isLiked={Boolean(post.isLiked)}
+        />
 
         {type === "FEED" && (
           <Link href={`/post/${post.id}`}>
