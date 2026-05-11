@@ -1,6 +1,8 @@
 "use client";
 
 import defaultAvatar from "@/assets/default-avatar.png";
+import { useProfileData } from "@/hooks/use-profile-data";
+import { toBackendImageUrl } from "@/lib/image-url";
 import {
   Popover,
   PopoverContent,
@@ -16,6 +18,7 @@ export default function ProfileButton() {
   const userId = useUserId();
   const setLogout = useSetLogout();
   const router = useRouter();
+  const { data: profile } = useProfileData(userId);
 
   const signOut = () => {
     Cookies.remove("accessToken");
@@ -27,11 +30,13 @@ export default function ProfileButton() {
 
   if (!userId) return null;
 
+  const avatarUrl = profile?.avatarUrl || profile?.avatar_url;
+
   return (
     <Popover>
       <PopoverTrigger>
         <img
-          src={defaultAvatar.src}
+          src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
           alt="프로필 이미지"
           className="h-6 w-6 cursor-pointer rounded-full object-cover"
         />

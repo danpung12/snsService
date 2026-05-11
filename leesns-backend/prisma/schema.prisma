@@ -26,6 +26,8 @@ model User {
   posts Post[]
   comments Comment[]
   postLike  PostLike[]
+
+  avatarUrl String?
 }
 
 model Post {

@@ -18,3 +18,20 @@ export async function uploadPostImages(files: File[]) {
 
   return response.data.filenames;
 }
+
+export async function uploadProfileImage(file: File) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await api.post<{ filename: string }>(
+    "/uploads/profile-image",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data.filename;
+}

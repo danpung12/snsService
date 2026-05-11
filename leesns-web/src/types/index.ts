@@ -1,12 +1,14 @@
 export interface User {
   id: string | number;
   nickname: string;
+  avatarUrl?: string | null;
   avatar_url?: string | null;
 }
 
 export interface PostAuthor {
   id: string;
   nickname: string;
+  avatarUrl?: string | null;
   avatar_url?: string | null;
 }
 
@@ -46,6 +48,8 @@ export interface CursorPaginatedPosts {
 export interface CommentAuthor {
   id: string;
   nickname: string;
+  avatarUrl?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface Comment {

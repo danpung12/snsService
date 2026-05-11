@@ -1,10 +1,30 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { updateUserDto } from './dto/update-user.dto';
+import { join } from 'path';
+import { promises } from 'fs';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private ImagePath(image?: string | null) {
+    if (image) {
+      return `/${process.env.AVATAR_IMAGE_PATH}/${image}`;
+    }
+  }
+
+  private async moveAvatarImage(image: string | null) {
+    if (!image) {
+      return null;
+    }
+
+    await promises.rename(
+      join(process.cwd(), process.env.POST_TEMP_IAMGE_PATH!, image),
+      join(process.cwd(), process.env.AVATAR_IMAGE_PATH!, image),
+    );
+  }
 
   async findById(id: string) {
     return this.prisma.user.findUnique({
@@ -39,5 +59,15 @@ export class UsersService {
 
   async findByProviderId(providerId: string) {
     return this.prisma.user.findUnique({ where: { providerId } });
+  }
+
+  async updateMyProfile(userId: string, body: updateUserDto) {
+    await this.moveAvatarImage(body.avatarUrl ?? null);
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { ...body, avatarUrl: this.ImagePath(body.avatarUrl) },
+      select: { id: true, nickname: true, avatarUrl: true },
+    });
   }
 }

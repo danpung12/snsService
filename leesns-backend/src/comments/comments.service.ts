@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
+import { publicUserSelect } from 'src/common/prisma-select/user.select';
 
 @Injectable()
 export class CommentsService {
@@ -27,7 +28,7 @@ export class CommentsService {
       where: cursor ? { postId, id: { lt: cursor } } : { postId },
       take: take + 1,
       orderBy: { id: 'desc' },
-      include: { author: { select: { id: true, nickname: true } } },
+      include: { author: { select: publicUserSelect } },
     });
 
     const hasNextComment = comments[take] != null;
@@ -43,7 +44,7 @@ export class CommentsService {
   async getCommentbyId(commentId: number) {
     const comment = await this.prisma.comment.findMany({
       where: { id: commentId },
-      include: { author: { select: { id: true, nickname: true } } },
+      include: { author: { select: publicUserSelect } },
     });
 
     return comment;

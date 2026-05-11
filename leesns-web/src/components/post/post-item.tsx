@@ -58,10 +58,12 @@ export default function PostItem({
   const author = post.author ?? {
     id: post.authorId,
     nickname: "알 수 없는 사용자",
+    avatarUrl: null,
     avatar_url: null,
   };
   const isMine = post.authorId === userId || author.id === userId;
   const imageUrls = getPostImageUrls(post);
+  const avatarUrl = author.avatarUrl || author.avatar_url;
 
   return (
     <article
@@ -73,7 +75,7 @@ export default function PostItem({
         <div className="flex items-start gap-4">
           <Link href={author.id ? `/profile/${author.id}` : "#"}>
             <img
-              src={author.avatar_url || defaultAvatar.src}
+              src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
               alt={`${author.nickname}의 프로필 이미지`}
               className="h-10 w-10 rounded-full object-cover"
             />

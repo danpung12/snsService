@@ -6,6 +6,7 @@ import { faker } from '@faker-js/faker/locale/ko';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 import { promises } from 'fs';
 import { join } from 'path';
+import { publicUserSelect } from 'src/common/prisma-select/user.select';
 
 @Injectable()
 export class PostsService {
@@ -49,10 +50,7 @@ export class PostsService {
       orderBy: { id: 'desc' },
       include: {
         author: {
-          select: {
-            id: true,
-            nickname: true,
-          },
+          select: publicUserSelect,
         },
         likes: {
           where: { userId },
@@ -81,10 +79,7 @@ export class PostsService {
       where: { id },
       include: {
         author: {
-          select: {
-            id: true,
-            nickname: true,
-          },
+          select: publicUserSelect,
         },
         likes: { where: { userId }, select: { id: true } },
 

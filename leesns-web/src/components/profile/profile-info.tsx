@@ -1,7 +1,9 @@
 "use client";
 
 import defaultAvatar from "@/assets/default-avatar.png";
+import EditProfileButton from "@/components/profile/edit-profile-button";
 import { useProfileData } from "@/hooks/use-profile-data";
+import { toBackendImageUrl } from "@/lib/image-url";
 import { useUserId } from "@/store/auth";
 
 export default function ProfileInfo({ userId }: { userId: string }) {
@@ -29,17 +31,18 @@ export default function ProfileInfo({ userId }: { userId: string }) {
   }
 
   const isMine = currentUserId === String(profile.id);
+  const avatarUrl = profile.avatarUrl || profile.avatar_url;
 
   return (
     <div className="flex flex-col items-center justify-center gap-5">
       <img
-        src={profile.avatar_url || defaultAvatar.src}
+        src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
         alt={`${profile.nickname}의 프로필 이미지`}
         className="h-30 w-30 rounded-full object-cover"
       />
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
         <div className="text-xl font-bold">{profile.nickname}</div>
-        {isMine && <div className="text-muted-foreground text-sm">내 프로필</div>}
+        {isMine && <EditProfileButton />}
       </div>
     </div>
   );

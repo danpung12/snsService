@@ -1,11 +1,12 @@
 import {
   Controller,
   Post,
+  UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { UploadsService } from './uploads.service';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('uploads')
 export class UploadsController {
@@ -16,6 +17,14 @@ export class UploadsController {
   uploadPostImage(@UploadedFiles() files: Express.Multer.File[]) {
     return {
       filenames: files.map((file) => file.filename),
+    };
+  }
+
+  @Post('profile-image')
+  @UseInterceptors(FileInterceptor('image'))
+  uploadProfileImage(@UploadedFile() file: Express.Multer.File) {
+    return {
+      filename: file.filename,
     };
   }
 }

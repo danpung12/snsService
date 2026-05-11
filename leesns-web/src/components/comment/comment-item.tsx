@@ -8,6 +8,7 @@ import { useUserId } from "@/store/auth";
 import { useState } from "react";
 import CommentEditor from "@/components/comment/comment-editor";
 import { useDeleteComment } from "@/hooks/use-delete-comment";
+import { toBackendImageUrl } from "@/lib/image-url";
 import { toast } from "sonner";
 
 export default function CommentItem(props: NestedComment) {
@@ -37,6 +38,7 @@ export default function CommentItem(props: NestedComment) {
 
   const isMine = userId === props.authorId || userId === props.author?.id;
   const isRootComment = props.parentComment === undefined;
+  const avatarUrl = props.author?.avatarUrl || props.author?.avatar_url;
 
   return (
     <div
@@ -47,7 +49,7 @@ export default function CommentItem(props: NestedComment) {
           <div className="flex h-full flex-col">
             <img
               className="h-10 w-10 rounded-full object-cover"
-              src={defaultAvatar.src}
+              src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
               alt={`${props.author?.nickname ?? "사용자"} 프로필 이미지`}
             />
           </div>

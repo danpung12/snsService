@@ -1,4 +1,5 @@
 import PostEditorModal from "./post/modals/post-editor-modal";
+import ProfileEditorModal from "./profile/profile-editor-modal";
 
 export default function ModalProvider({
   children,
@@ -8,6 +9,7 @@ export default function ModalProvider({
   return (
     <>
       <PostEditorModal />
+      <ProfileEditorModal />
       
       {children}
     </>
