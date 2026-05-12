@@ -4,7 +4,13 @@ import PostItem from "@/components/post/post-item";
 import { useInfinitePostsData } from "@/hooks/use-infinite-posts-data";
 import { useEffect, useRef } from "react";
 
-export default function PostFeed({ authorId }: { authorId?: string }) {
+export default function PostFeed({
+  authorId,
+  feed = "all",
+}: {
+  authorId?: string;
+  feed?: "all" | "following";
+}) {
   const {
     data,
     error,
@@ -12,7 +18,7 @@ export default function PostFeed({ authorId }: { authorId?: string }) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfinitePostsData(authorId);
+  } = useInfinitePostsData({ authorId, feed });
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -53,7 +59,9 @@ export default function PostFeed({ authorId }: { authorId?: string }) {
   if (isEmpty) {
     return (
       <div className="text-muted-foreground rounded-lg border py-14 text-center text-sm">
-        아직 게시글이 없습니다.
+        {feed === "following"
+          ? "팔로잉한 사용자의 게시글이 없습니다."
+          : "아직 게시글이 없습니다."}
       </div>
     );
   }

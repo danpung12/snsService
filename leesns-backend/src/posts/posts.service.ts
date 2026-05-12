@@ -7,10 +7,14 @@ import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pa
 import { promises } from 'fs';
 import { join } from 'path';
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
+import { FollowsService } from 'src/follows/follows.service';
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly followsService: FollowsService,
+  ) {}
 
   private ImagePath(image: string | null) {
     return image ? `/${process.env.POST_IMAGE_PATH}/${image}` : null;
@@ -41,11 +45,20 @@ export class PostsService {
   }
 
   // Post를 전체 조회한다.
-  async getAllPosts(paginationDto: CursorPaginationDto, userId: string) {
+  async getAllPosts(
+    paginationDto: CursorPaginationDto,
+    userId: string,
+    whereCondition?: string[],
+  ) {
     const { cursor, take = 5, authorId } = paginationDto;
 
+    const where = {
+      authorId: whereCondition ? { in: whereCondition } : authorId,
+      ...(cursor ? { id: { lt: cursor } } : undefined),
+    };
+
     const posts = await this.prisma.post.findMany({
-      where: { authorId, ...(cursor ? { id: { lt: cursor } } : undefined) },
+      where: where,
       take: take + 1,
       orderBy: { id: 'desc' },
       include: {
@@ -248,5 +261,13 @@ export class PostsService {
         isLiked: true,
       };
     }
+  }
+
+  async getFollowingPosts(paginationDto: CursorPaginationDto, userId: string) {
+    const followings = await this.followsService.getFollowings(userId);
+
+    const targetUserIds = followings.map((follow) => follow.followedId);
+
+    return this.getAllPosts(paginationDto, userId, targetUserIds);
   }
 }

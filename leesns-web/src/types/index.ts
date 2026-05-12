@@ -39,6 +39,18 @@ export interface TogglePostLikeResponse {
   isLiked: boolean;
 }
 
+export interface FollowRelation {
+  id: string;
+  followerId: string;
+  followedId: string;
+  follower?: User;
+  followed?: User;
+}
+
+export interface FollowResponse {
+  isFollowing: boolean;
+}
+
 export interface CursorPaginatedPosts {
   data: Post[];
   nextCursor: number | null;

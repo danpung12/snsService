@@ -6,8 +6,14 @@ export const QUERY_KEYS = {
   post: {
     all: ["post"] as const,
     list: ["post", "list"] as const,
+    followingList: ["post", "list", "following"] as const,
     userList: (authorId: string) => ["post", "list", "user", authorId] as const,
     byId: (postId: number) => ["post", "byId", postId] as const,
+  },
+  follow: {
+    all: ["follow"] as const,
+    followers: (userId: string) => ["follow", "followers", userId] as const,
+    followings: (userId: string) => ["follow", "followings", userId] as const,
   },
   comment: {
     all: ["comment"] as const,

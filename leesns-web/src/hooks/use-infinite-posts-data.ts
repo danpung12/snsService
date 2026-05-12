@@ -1,6 +1,6 @@
 "use client";
 
-import { fetchPosts } from "@/service/post";
+import { fetchFollowingPosts, fetchPosts } from "@/service/post";
 import { QUERY_KEYS } from "@/lib/query-keys";
 import type { Post } from "@/types";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,17 +13,35 @@ export type PostIdsPage = {
   hasNextPage: boolean;
 };
 
-export function useInfinitePostsData(authorId?: string) {
+export function useInfinitePostsData({
+  authorId,
+  feed = "all",
+}: {
+  authorId?: string;
+  feed?: "all" | "following";
+} = {}) {
   const queryClient = useQueryClient();
+  const queryKey =
+    feed === "following"
+      ? QUERY_KEYS.post.followingList
+      : authorId
+        ? QUERY_KEYS.post.userList(authorId)
+        : QUERY_KEYS.post.list;
 
   return useInfiniteQuery({
-    queryKey: authorId ? QUERY_KEYS.post.userList(authorId) : QUERY_KEYS.post.list,
+    queryKey,
     queryFn: async ({ pageParam }) => {
-      const page = await fetchPosts({
-        cursor: pageParam,
-        take: POSTS_PAGE_SIZE,
-        authorId,
-      });
+      const page =
+        feed === "following"
+          ? await fetchFollowingPosts({
+              cursor: pageParam,
+              take: POSTS_PAGE_SIZE,
+            })
+          : await fetchPosts({
+              cursor: pageParam,
+              take: POSTS_PAGE_SIZE,
+              authorId,
+            });
 
       page.data.forEach((post: Post) => {
         queryClient.setQueryData(QUERY_KEYS.post.byId(post.id), post);

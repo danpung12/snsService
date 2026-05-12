@@ -28,6 +28,9 @@ model User {
   postLike  PostLike[]
 
   avatarUrl String?
+
+  followings Follow[] @relation("Followings")
+  followers Follow[] @relation("Followers")
 }
 
 model Post {
@@ -84,4 +87,20 @@ model Comment{
   author User @relation(fields: [authorId], references: [id])
   created_at DateTime @default(now())
 
+}
+
+model Follow {
+  id String @id @default(uuid())
+
+
+  followerId String
+  follower User @relation("Followings", fields:[followerId], references: [id], onDelete: Cascade)
+
+
+  followedId String
+  followed User @relation("Followers", fields: [followedId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followedId])
+  @@index([followerId])
+  @@index([followedId])
 }

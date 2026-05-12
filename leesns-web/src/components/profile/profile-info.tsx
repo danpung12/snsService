@@ -2,6 +2,9 @@
 
 import defaultAvatar from "@/assets/default-avatar.png";
 import EditProfileButton from "@/components/profile/edit-profile-button";
+import FollowButton from "@/components/profile/follow-button";
+import FollowListDialog from "@/components/profile/follow-list-dialog";
+import { useFollowersData, useFollowingsData } from "@/hooks/use-follow-data";
 import { useProfileData } from "@/hooks/use-profile-data";
 import { toBackendImageUrl } from "@/lib/image-url";
 import { useUserId } from "@/store/auth";
@@ -9,6 +12,18 @@ import { useUserId } from "@/store/auth";
 export default function ProfileInfo({ userId }: { userId: string }) {
   const currentUserId = useUserId();
   const { data: profile, error, isPending } = useProfileData(userId);
+  const isMine = currentUserId === userId;
+  const hasCurrentUser = Boolean(currentUserId);
+  const {
+    data: profileFollowings = [],
+    isPending: isProfileFollowingsPending,
+  } = useFollowingsData(userId, !!userId);
+  const { data: profileFollowers = [], isPending: isProfileFollowersPending } =
+    useFollowersData(userId, !!userId);
+  const { data: myFollowings = [] } = useFollowingsData(
+    currentUserId,
+    hasCurrentUser && !isMine,
+  );
 
   if (error) {
     return (
@@ -30,19 +45,44 @@ export default function ProfileInfo({ userId }: { userId: string }) {
     );
   }
 
-  const isMine = currentUserId === String(profile.id);
   const avatarUrl = profile.avatarUrl || profile.avatar_url;
+  const isFollowing = myFollowings.some(
+    (follow) => follow.followedId === userId,
+  );
 
   return (
     <div className="flex flex-col items-center justify-center gap-5">
       <img
         src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
-        alt={`${profile.nickname}의 프로필 이미지`}
+        alt={`${profile.nickname} 프로필 이미지`}
         className="h-30 w-30 rounded-full object-cover"
       />
+
       <div className="flex flex-col items-center gap-3">
         <div className="text-xl font-bold">{profile.nickname}</div>
-        {isMine && <EditProfileButton />}
+
+        <div className="flex items-center gap-2">
+          <FollowListDialog
+            title="팔로워"
+            type="followers"
+            follows={profileFollowers}
+            isPending={isProfileFollowersPending}
+          />
+          <FollowListDialog
+            title="팔로우"
+            type="followings"
+            follows={profileFollowings}
+            isPending={isProfileFollowingsPending}
+          />
+        </div>
+
+        {isMine ? (
+          <EditProfileButton />
+        ) : (
+          hasCurrentUser && (
+            <FollowButton userId={userId} isFollowing={isFollowing} />
+          )
+        )}
       </div>
     </div>
   );

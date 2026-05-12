@@ -21,6 +21,23 @@ export async function fetchPosts({
   return response.data;
 }
 
+export async function fetchFollowingPosts({
+  cursor = 0,
+  take = 5,
+}: {
+  cursor?: number;
+  take?: number;
+}) {
+  const response = await api.post<CursorPaginatedPosts>(
+    "/posts/following",
+    undefined,
+    {
+      params: { cursor, take },
+    },
+  );
+  return response.data;
+}
+
 export async function fetchPostById(postId: number) {
   const response = await api.get<Post>(`/posts/${postId}`);
   return response.data;

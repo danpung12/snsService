@@ -18,7 +18,6 @@ import { JwtAuthGuard } from 'src/auth/strategy/jwt.strategy';
 import { updatePostDto } from './dto/update-post.dto';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 import { ResponseTimeInterceptor } from 'src/common/interceptors/response-time.interceptor';
-import { CacheInterceptor } from 'src/common/interceptors/cache.interceptor';
 
 @Controller('posts')
 @UseInterceptors(ResponseTimeInterceptor)
@@ -34,10 +33,23 @@ export class PostsController {
   ) {
     return this.postsService.getAllPosts(pagnationDto, userId);
   }
+
+  @Post('following')
+  @UseGuards(JwtAuthGuard)
+  getFollowingPosts(
+    @Query() paginationDto: CursorPaginationDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.postsService.getFollowingPosts(paginationDto, userId);
+  }
+
   // id에 해당되는 post를 가져온다
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  getPost(@Param('id', ParseIntPipe) id: number, @GetUser('id') userId: string) {
+  getPost(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') userId: string,
+  ) {
     return this.postsService.getPostbyId(id, userId);
   }
 
