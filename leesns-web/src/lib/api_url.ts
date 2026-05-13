@@ -1,1 +1,1 @@
-export const API_URL = "http://eunchong-sns.duckdns.org:4000";
+export const API_URL = "https://snsservice.onrender.com";

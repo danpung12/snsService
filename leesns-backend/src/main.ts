@@ -9,9 +9,18 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(cookieParser());
 
+  const allowedOrigins: string[] = [
+    'http://localhost:3000',
+    'https://sns-service-livid.vercel.app',
+  ];
+
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+
   app.enableCors({
-    origin: ['http://localhost:3000','https://sns-service-livid.vercel.app/'], // "이 주소(프론트)에서 오는 요청은 막지 마!"
-    credentials: true, // "나중에 쿠키나 인증 헤더 같은 것도 통과시켜 줘!"
+    origin: allowedOrigins,
+    credentials: true,
   });
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
