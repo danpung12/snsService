@@ -1,25 +1,15 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/auth-provider";
-import Provider from "@/components/query-provider";
-import Link from "next/link";
-import logo from "@/assets/logo.png";
-import Image from "next/image";
-import { SunIcon } from "lucide-react";
-import localFont from "next/font/local";
+import AppFrame from "@/components/layout/app-frame";
 import ModalProvider from "@/components/modal-provider";
+import Provider from "@/components/query-provider";
 import { Toaster } from "@/components/ui/sonner";
-import ProfileButton from "@/components/layout/header/profile-button";
+import localFont from "next/font/local";
 
 const pretendard = localFont({
   src: "../assets/fonts/PretendardVariable.woff2",
   variable: "--font-pretendard",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -34,33 +24,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${pretendard.variable} font-sans antialiased `}>
+      <body className={`${pretendard.variable} font-sans antialiased`}>
         <Provider>
           <AuthProvider>
             <ModalProvider>
               <Toaster />
-              <div className="flex min-h-[100vh] flex-col">
-                <header className="bg-background/95 sticky top-0 z-50 h-15 border-b backdrop-blur">
-                  <div className="m-auto flex h-full w-full max-w-175 justify-between px-4">
-                    <Link href={"/"} className="flex items-center gap-2">
-                      <Image src={logo} alt="로고" className="h-5 w-auto" />
-                      <div className="font-bold">공통 헤더</div>
-                    </Link>
-                    <div className="flex items-center gap-5">
-                      <div className="hover:bg-muted cursor-pointer rounded-full p-2">
-                        <SunIcon />
-                      </div>
-                      <ProfileButton />
-                    </div>
-                  </div>
-                </header>
-                <main className="m-auto w-full max-w-175 flex-1 px-4 py-6">
-                  {children}
-                </main>
-                <footer className="text-muted-foreground border-t py-10 text-center">
-                  @aass6863
-                </footer>
-              </div>
+              <AppFrame>{children}</AppFrame>
             </ModalProvider>
           </AuthProvider>
         </Provider>

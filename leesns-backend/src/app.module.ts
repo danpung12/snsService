@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CommentsModule } from './comments/comments.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { FollowsModule } from './follows/follows.module';
+import { ChatsModule } from './chats/chats.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { FollowsModule } from './follows/follows.module';
     CommentsModule,
     UploadsModule,
     FollowsModule,
+    ChatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

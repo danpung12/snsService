@@ -51,6 +51,32 @@ export interface FollowResponse {
   isFollowing: boolean;
 }
 
+export interface ChatRoom {
+  id: string;
+  createdAt?: string | Date;
+  dmKey?: string;
+  lastMessage?: string;
+  lastMessageAt?: string | Date;
+  users?: User[];
+  messages?: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id?: string;
+  roomId: string;
+  chatRoomId?: string;
+  content: string;
+  senderId: string;
+  sender?: User;
+  createdAt: string;
+}
+
+export interface CursorPaginatedChatMessages {
+  data: ChatMessage[];
+  nextCursor: string | null;
+  hasNextPage: boolean;
+}
+
 export interface CursorPaginatedPosts {
   data: Post[];
   nextCursor: number | null;

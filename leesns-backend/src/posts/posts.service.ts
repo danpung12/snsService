@@ -127,10 +127,7 @@ export class PostsService {
       },
       include: {
         author: {
-          select: {
-            id: true,
-            nickname: true,
-          },
+          select: publicUserSelect,
         },
         images: {
           orderBy: {

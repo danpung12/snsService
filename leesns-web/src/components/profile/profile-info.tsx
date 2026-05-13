@@ -4,6 +4,7 @@ import defaultAvatar from "@/assets/default-avatar.png";
 import EditProfileButton from "@/components/profile/edit-profile-button";
 import FollowButton from "@/components/profile/follow-button";
 import FollowListDialog from "@/components/profile/follow-list-dialog";
+import MessageButton from "@/components/profile/message-button";
 import { useFollowersData, useFollowingsData } from "@/hooks/use-follow-data";
 import { useProfileData } from "@/hooks/use-profile-data";
 import { toBackendImageUrl } from "@/lib/image-url";
@@ -69,7 +70,7 @@ export default function ProfileInfo({ userId }: { userId: string }) {
             isPending={isProfileFollowersPending}
           />
           <FollowListDialog
-            title="팔로우"
+            title="팔로잉"
             type="followings"
             follows={profileFollowings}
             isPending={isProfileFollowingsPending}
@@ -80,7 +81,14 @@ export default function ProfileInfo({ userId }: { userId: string }) {
           <EditProfileButton />
         ) : (
           hasCurrentUser && (
-            <FollowButton userId={userId} isFollowing={isFollowing} />
+            <div className="flex flex-wrap justify-center gap-2">
+              <FollowButton userId={userId} isFollowing={isFollowing} />
+              <MessageButton
+                currentUserId={currentUserId}
+                targetUserId={userId}
+                targetNickname={profile.nickname}
+              />
+            </div>
           )
         )}
       </div>
