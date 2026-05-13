@@ -29,7 +29,7 @@ export default function LogInPage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:4000/auth/google";
+    window.location.href = "https://snsservice.onrender.com/auth/google";
   };
 
   return (
