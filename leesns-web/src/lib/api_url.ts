@@ -1,1 +1,1 @@
-export const API_URL = "http://localhost:4000";
+export const API_URL = "http://eunchong-sns.duckdns.org:4000";
