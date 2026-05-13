@@ -19,6 +19,17 @@ import { SignupUserDto } from './dto/Signup-user.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private getCookieOptions() {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    return {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    } as const;
+  }
+
   @UseGuards(AuthGuard('local'))
   @Post('login')
   async loginUserPassport(
@@ -29,8 +40,8 @@ export class AuthController {
     const accessToken = await this.authService.signToken(user, false);
     const refreshToken = await this.authService.signToken(user, true);
 
-    res.cookie('accessToken', accessToken, { httpOnly: true, path: '/' });
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, path: '/' });
+    res.cookie('accessToken', accessToken, this.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, this.getCookieOptions());
   }
 
   @Post('signup')
@@ -40,14 +51,8 @@ export class AuthController {
   ) {
     const tokens = await this.authService.signup(signupDto);
 
-    res.cookie('accessToken', tokens.accessToken, {
-      httpOnly: true,
-      path: '/',
-    });
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      path: '/',
-    });
+    res.cookie('accessToken', tokens.accessToken, this.getCookieOptions());
+    res.cookie('refreshToken', tokens.refreshToken, this.getCookieOptions());
 
     return { message: '회원가입 및 로그인 성공' };
   }
@@ -58,7 +63,7 @@ export class AuthController {
   async PostTokenAcess(@GetUser() user, @Res({ passthrough: true }) res) {
     const newAccessToken = await this.authService.rotateToken(user, false);
 
-    res.cookie('accessToken', newAccessToken, { httpOnly: true, path: '/' });
+    res.cookie('accessToken', newAccessToken, this.getCookieOptions());
     return {
       message: '토큰 갱신 성공',
     };
@@ -80,8 +85,8 @@ export class AuthController {
     const { accessToken, refreshToken } =
       await this.authService.googleLogin(user);
 
-    res.cookie('accessToken', accessToken, { httpOnly: true, path: '/' });
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, path: '/' });
+    res.cookie('accessToken', accessToken, this.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, this.getCookieOptions());
 
     res.redirect(`${process.env.FRONTEND_URL}/auth/success`);
   }
