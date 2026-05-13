@@ -1,8 +1,7 @@
 "use client";
 
-import { API_URL } from "@/lib/api_url";
 import { useAuthStore } from "@/store/auth";
-import axios from "axios";
+import api from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -22,27 +21,25 @@ export default function AuthProvider({
   useEffect(() => {
     let ignore = false;
 
-    const fetchMyProfile = async () => {
+    const restoreAuth = async () => {
+      if (isPublicPath) {
+        if (!ignore) {
+          setLoad(true);
+        }
+        return;
+      }
+
       try {
-        const response = await axios.get(`${API_URL}/users/me`, {
-          withCredentials: true,
-        });
+        const response = await api.get("/users/me");
 
         if (ignore) return;
 
         setLogin(response.data.id, response.data.nickname);
-
-        if (isPublicPath) {
-          router.replace("/");
-        }
       } catch {
         if (ignore) return;
 
         setLogout();
-
-        if (!isPublicPath) {
-          router.replace("/login");
-        }
+        router.replace("/login");
       } finally {
         if (!ignore) {
           setLoad(true);
@@ -50,15 +47,16 @@ export default function AuthProvider({
       }
     };
 
-    fetchMyProfile();
+    restoreAuth();
 
     return () => {
       ignore = true;
     };
   }, [isPublicPath, router, setLoad, setLogin, setLogout]);
 
+  if (isPublicPath) return <>{children}</>;
   if (!isLoad) return null;
-  if (!isPublicPath && !isLoggedIn) return null;
+  if (!isLoggedIn) return null;
 
   return <>{children}</>;
 }

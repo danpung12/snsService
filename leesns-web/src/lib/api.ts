@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 import { API_URL } from "@/lib/api_url";
 
 const api = axios.create({
@@ -7,22 +6,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const accessToken = Cookies.get("accessToken");
-
-    if (accessToken && !config.url?.includes("/auth/login")) {
-      config.headers["Authorization"] = `Bearer ${accessToken}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
-
-// 토큰 갱신 중인지 플래그 (무한 루프 방지)
 let isRefreshing = false;
 let failedQueue: {
   resolve: (value?: unknown) => void;
@@ -40,9 +23,16 @@ const processQueue = (error: unknown = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config ?? {};
+    const requestUrl = originalRequest.url ?? "";
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthUrl =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/signup") ||
+      requestUrl.includes("/auth/token/access") ||
+      requestUrl.includes("/auth/google");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthUrl) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -58,7 +48,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        window.location.href = "/login";
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

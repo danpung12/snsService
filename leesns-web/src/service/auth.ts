@@ -1,6 +1,4 @@
 import api from "@/lib/api";
-import { API_URL } from "@/lib/api_url";
-import axios from "axios";
 
 export async function SignUp({
   email,

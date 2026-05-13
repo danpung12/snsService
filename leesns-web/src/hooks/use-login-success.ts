@@ -1,27 +1,20 @@
-import Cookies from "js-cookie";
 import { useSetLogin } from "@/store/auth";
 import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 export function useLoginSuccess() {
   const setLogin = useSetLogin();
   const router = useRouter();
 
-  const loginSuccess = (
-    accessToken: string,
-    refreshToken: string,
-    userId: string,
-    nickname: string = "구글 유저",
-  ) => {
-    // 1. 쿠키에 토큰 및 정보 저장
-    Cookies.set("accessToken", accessToken);
-    Cookies.set("refreshToken", refreshToken);
-    Cookies.set("nickname", nickname);
-
-    // 2. Zustand 전역 상태 업데이트
-    setLogin(userId, nickname);
-
-    // 3. 메인 화면으로 리다이렉트
-    router.push("/");
+  const loginSuccess = async () => {
+    try {
+      const res = await api.get("/users/me");
+      setLogin(res.data.id, res.data.nickname);
+      router.replace("/");
+    } catch (error) {
+      console.error("Failed to fetch user profile after login", error);
+      router.replace("/login");
+    }
   };
 
   return loginSuccess;

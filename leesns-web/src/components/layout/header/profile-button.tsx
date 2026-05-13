@@ -9,7 +9,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useSetLogout, useUserId } from "@/store/auth";
-import Cookies from "js-cookie";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Popover as PopoverPrimitive } from "radix-ui";
@@ -21,22 +20,20 @@ export default function ProfileButton() {
   const { data: profile } = useProfileData(userId);
 
   const signOut = () => {
-    Cookies.remove("accessToken");
-    Cookies.remove("refreshToken");
-    Cookies.remove("nickname");
+    // Note: To fully log out with HttpOnly cookies, 
+    // you would typically call a backend POST /auth/logout endpoint here
+    // that clears the HttpOnly cookies via Set-Cookie header.
     setLogout();
     router.push("/login");
   };
 
   if (!userId) return null;
 
-  const avatarUrl = profile?.avatarUrl || profile?.avatar_url;
-
   return (
     <Popover>
       <PopoverTrigger>
         <img
-          src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
+          src={profile?.avatarUrl ? toBackendImageUrl(profile.avatarUrl) : defaultAvatar.src}
           alt="프로필 이미지"
           className="h-6 w-6 cursor-pointer rounded-full object-cover"
         />
