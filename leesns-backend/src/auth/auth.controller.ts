@@ -42,8 +42,6 @@ export class AuthController {
 
     res.cookie('accessToken', accessToken, this.getCookieOptions());
     res.cookie('refreshToken', refreshToken, this.getCookieOptions());
-
-    console.log("[LOGIN] Set-Cookie:", res.getHeader("Set-Cookie"));
   }
 
   @Post('signup')

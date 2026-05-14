@@ -35,17 +35,8 @@ export const useLogin = () => {
     mutationFn: LogIn,
     onSuccess: async () => {
       try {
-        window.alert("1. /auth/login 성공, /users/me 요청 시작");
-
         const res = await api.get("/users/me");
-
-        window.alert(
-          `2. /users/me 성공\nid: ${res.data.id}\nnickname: ${res.data.nickname}`,
-        );
-
         setLogin(res.data.id, res.data.nickname);
-
-        window.alert("3. setLogin 완료, 메인으로 이동");
 
         router.replace("/");
       } catch (error) {
