@@ -145,6 +145,17 @@ export default function DmWidget() {
     [activeRoomId, messages],
   );
 
+  useEffect(() => {
+    if (!activeRoomId) return;
+
+    setMessages((prev) =>
+      prev.map((message) => ({
+        ...message,
+        roomId: message.roomId ?? message.chatRoomId ?? activeRoomId,
+      })),
+    );
+  }, [activeRoomId]);
+
   const hasActiveConversation = Boolean(activeRoomId && activeRoom);
 
   const activeHeaderTime =
@@ -260,6 +271,17 @@ export default function DmWidget() {
       !currentUserId
     )
       return;
+
+    const optimisticMessage: ChatMessage = {
+      id: `optimistic-${Date.now()}`,
+      roomId: activeRoomId,
+      chatRoomId: activeRoomId,
+      senderId: currentUserId,
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => mergeMessages(prev, [optimisticMessage], "append"));
 
     socketRef.current.emit("sendMessage", {
       roomId: activeRoomId,

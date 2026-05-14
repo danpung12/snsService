@@ -13,7 +13,15 @@ import type {
   CursorPaginatedChatMessages,
   User,
 } from "@/types";
-import { ArrowLeft, Expand, Info, MessageCircle, Search, SendHorizonal, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Expand,
+  Info,
+  MessageCircle,
+  Search,
+  SendHorizonal,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -195,16 +203,20 @@ export default function ChatRoomPage() {
       }
     });
 
-    socket.emit("getMessages", {
-      chatRoomId: selectedRoomId,
-      take: MESSAGE_PAGE_SIZE,
-    }, (response: CursorPaginatedChatMessages) => {
-      const fetchedMessages = (response?.data ?? []).map(normalizeMessage);
-      setMessages(fetchedMessages);
-      setNextMessageCursor(response?.nextCursor ?? null);
-      setHasNextMessagePage(Boolean(response?.hasNextPage));
-      setIsMessagesLoading(false);
-    });
+    socket.emit(
+      "getMessages",
+      {
+        chatRoomId: selectedRoomId,
+        take: MESSAGE_PAGE_SIZE,
+      },
+      (response: CursorPaginatedChatMessages) => {
+        const fetchedMessages = (response?.data ?? []).map(normalizeMessage);
+        setMessages(fetchedMessages);
+        setNextMessageCursor(response?.nextCursor ?? null);
+        setHasNextMessagePage(Boolean(response?.hasNextPage));
+        setIsMessagesLoading(false);
+      },
+    );
 
     socket.on("disconnect", () => {
       setIsConnected(false);
@@ -337,7 +349,7 @@ export default function ChatRoomPage() {
       </aside>
 
       <section className="flex min-w-0 flex-col">
-        <div className="flex h-14 items-center justify-between border-b px-4 md:h-16 md:px-5">
+        <div className="flex h-14 items-center justify-start border-b px-4 md:h-16 md:px-5">
           <Button
             type="button"
             variant="ghost"
