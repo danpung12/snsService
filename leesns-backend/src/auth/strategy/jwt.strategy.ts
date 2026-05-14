@@ -1,10 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard, PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { UsersService } from 'src/users/users.service';
 
-export class JwtAuthGuard extends AuthGuard('jwt') {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  canActivate(context: ExecutionContext) {
+    const req = context.switchToHttp().getRequest<Request>();
+
+    if (!req.headers.cookie) {
+      throw new UnauthorizedException({
+        code: 'NO_COOKIE_HEADER',
+        message: '요청에 쿠키 헤더가 없습니다.',
+      });
+    }
+
+    if (!req.cookies?.accessToken) {
+      throw new UnauthorizedException({
+        code: 'NO_ACCESS_TOKEN',
+        message: '세션 쿠키가 없습니다',
+      });
+    }
+
+    return super.canActivate(context);
+  }
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/store/auth";
 import api from "@/lib/api";
+import { showAuthErrorPopup } from "@/lib/auth-error";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -13,6 +14,7 @@ export default function AuthProvider({
   const { setLogin, setLogout, isLoad, isLoggedIn, setLoad } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+
   const isPublicPath =
     pathname === "/login" ||
     pathname === "/signup" ||
@@ -35,8 +37,11 @@ export default function AuthProvider({
         if (ignore) return;
 
         setLogin(response.data.id, response.data.nickname);
-      } catch {
+      } catch (error) {
         if (ignore) return;
+
+        // 임시 디버그용: 인증 복구 실패 원인을 모달로 표시
+        showAuthErrorPopup(error);
 
         setLogout();
         router.replace("/login");
