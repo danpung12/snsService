@@ -13,15 +13,7 @@ import type {
   CursorPaginatedChatMessages,
   User,
 } from "@/types";
-import {
-  ArrowLeft,
-  Expand,
-  Info,
-  MessageCircle,
-  Search,
-  SendHorizonal,
-  X,
-} from "lucide-react";
+import { Info, MessageCircle, Search, SendHorizonal, X } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -42,6 +34,27 @@ function getRoomPeer(room: ChatRoom | undefined, currentUserId: string) {
 
 function getUserAvatarUrl(user?: User) {
   return user?.avatarUrl || user?.avatar_url || null;
+}
+
+function SafeAvatar({
+  src,
+  alt,
+  className,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src ? toBackendImageUrl(src) : defaultAvatar.src}
+      alt={alt}
+      className={className}
+      onError={(event) => {
+        event.currentTarget.src = defaultAvatar.src;
+      }}
+    />
+  );
 }
 
 function formatMessageTime(time?: string | Date) {
@@ -318,12 +331,8 @@ export default function ChatRoomPage() {
                     setSelectedRoomId(room.id);
                   }}
                 >
-                  <img
-                    src={
-                      avatarUrl
-                        ? toBackendImageUrl(avatarUrl)
-                        : defaultAvatar.src
-                    }
+                  <SafeAvatar
+                    src={avatarUrl}
                     alt={`${peer?.nickname ?? "사용자"} 프로필 이미지`}
                     className="h-12 w-12 rounded-full object-cover"
                   />
@@ -362,15 +371,12 @@ export default function ChatRoomPage() {
           </Button>
 
           <div className="flex min-w-0 items-center gap-3">
-            <img
-              src={
-                headerAvatarUrl
-                  ? toBackendImageUrl(headerAvatarUrl)
-                  : defaultAvatar.src
-              }
+            <SafeAvatar
+              src={headerAvatarUrl}
               alt={`${headerUser.nickname} 프로필 이미지`}
               className="h-10 w-10 rounded-full object-cover"
             />
+
             <div className="min-w-0">
               <div className="truncate font-bold">{headerUser.nickname}</div>
               <div className="text-muted-foreground text-xs">
@@ -407,6 +413,7 @@ export default function ChatRoomPage() {
               </Button>
             </div>
           )}
+
           {roomMessages.length === 0 ? (
             <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
               {isMessagesLoading
@@ -434,18 +441,17 @@ export default function ChatRoomPage() {
                   {!isMine && (
                     <div className="h-8 w-8 shrink-0 self-end">
                       {shouldShowSenderAvatar && (
-                        <img
-                          src={
-                            senderAvatarUrl
-                              ? toBackendImageUrl(senderAvatarUrl)
-                              : defaultAvatar.src
-                          }
-                          alt={`${message.sender?.nickname ?? headerUser.nickname} 프로필 이미지`}
+                        <SafeAvatar
+                          src={senderAvatarUrl}
+                          alt={`${
+                            message.sender?.nickname ?? headerUser.nickname
+                          } 프로필 이미지`}
                           className="h-8 w-8 rounded-full object-cover"
                         />
                       )}
                     </div>
                   )}
+
                   {isMine ? (
                     <>
                       <div className="text-muted-foreground text-xs">

@@ -2,6 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 import defaultAvatar from "@/assets/default-avatar.png";
+import defaultPostImage from "@/assets/default-post-image.png";
 import {
   Carousel,
   CarouselContent,
@@ -27,6 +28,48 @@ function getPostImageUrls(post: Post) {
     .map(toBackendImageUrl);
 
   return Array.from(new Set(imageUrls));
+}
+
+function SafeAvatar({
+  src,
+  alt,
+  className,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src ? toBackendImageUrl(src) : defaultAvatar.src}
+      alt={alt}
+      className={className}
+      onError={(event) => {
+        event.currentTarget.src = defaultAvatar.src;
+      }}
+    />
+  );
+}
+
+function SafePostImage({
+  src,
+  alt,
+  className,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src || defaultPostImage.src}
+      alt={alt}
+      className={className}
+      onError={(event) => {
+        event.currentTarget.src = defaultPostImage.src;
+      }}
+    />
+  );
 }
 
 export default function PostItem({
@@ -74,12 +117,13 @@ export default function PostItem({
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <Link href={author.id ? `/profile/${author.id}` : "#"}>
-            <img
-              src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
+            <SafeAvatar
+              src={avatarUrl}
               alt={`${author.nickname}의 프로필 이미지`}
               className="h-10 w-10 rounded-full object-cover"
             />
           </Link>
+
           <div>
             <div className="font-bold hover:underline">{author.nickname}</div>
             <div className="text-muted-foreground text-sm">
@@ -117,14 +161,14 @@ export default function PostItem({
                   <div className="overflow-hidden rounded-lg border bg-muted">
                     {type === "FEED" ? (
                       <Link href={`/post/${post.id}`}>
-                        <img
+                        <SafePostImage
                           src={url}
                           className="max-h-[350px] w-full cursor-pointer object-cover"
                           alt={`게시글 첨부 이미지 ${index + 1}`}
                         />
                       </Link>
                     ) : (
-                      <img
+                      <SafePostImage
                         src={url}
                         className="max-h-[350px] w-full object-cover"
                         alt={`게시글 첨부 이미지 ${index + 1}`}
