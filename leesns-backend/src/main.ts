@@ -11,7 +11,7 @@ async function bootstrap() {
 
   const allowedOrigins: string[] = [
     'http://localhost:3000',
-    'https://sns-service-livid.vercel.app',
+    'https://snsservice.vercel.app',
   ];
 
   if (process.env.FRONTEND_URL) {
