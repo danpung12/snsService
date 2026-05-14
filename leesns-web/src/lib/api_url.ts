@@ -1,1 +1,1 @@
-export const API_URL = "https://snsservice.onrender.com";
+export const API_URL = "/api";
