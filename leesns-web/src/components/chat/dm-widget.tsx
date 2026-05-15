@@ -21,10 +21,11 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 
 const MESSAGE_PAGE_SIZE = 20;
+const MESSAGE_TIME_DIVIDER_INTERVAL_MS = 60 * 60 * 1000;
 
 function getRoomPeer(room: ChatRoom | undefined, currentUserId: string) {
   return room?.users?.find((user) => String(user.id) !== currentUserId);
@@ -62,6 +63,23 @@ function formatMessageTime(time?: string | Date) {
     minute: "2-digit",
     hour12: true,
   }).format(new Date(time));
+}
+
+function shouldShowMessageTimeDivider(
+  message: ChatMessage,
+  previousMessage?: ChatMessage,
+) {
+  if (!message.createdAt) return false;
+  if (!previousMessage?.createdAt) return true;
+
+  const currentTime = new Date(message.createdAt).getTime();
+  const previousTime = new Date(previousMessage.createdAt).getTime();
+
+  if (!Number.isFinite(currentTime) || !Number.isFinite(previousTime)) {
+    return false;
+  }
+
+  return currentTime - previousTime >= MESSAGE_TIME_DIVIDER_INTERVAL_MS;
 }
 
 function normalizeMessage(message: ChatMessage): ChatMessage {
@@ -103,6 +121,8 @@ export default function DmWidget() {
   const router = useRouter();
   const currentUserId = useUserId();
   const socketRef = useRef<Socket | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToBottomRef = useRef(true);
 
   const [isOpen, setIsOpen] = useState(false);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -144,6 +164,10 @@ export default function DmWidget() {
     () => messages.filter((message) => message.roomId === activeRoomId),
     [activeRoomId, messages],
   );
+  const activeRoomLastMessageKey =
+    activeRoomMessages.length > 0
+      ? getMessageKey(activeRoomMessages[activeRoomMessages.length - 1])
+      : "";
 
   useEffect(() => {
     if (!activeRoomId) return;
@@ -178,6 +202,7 @@ export default function DmWidget() {
   const loadMessages = (roomId: string, cursor?: string | null) => {
     if (!socketRef.current) return;
 
+    shouldScrollToBottomRef.current = !cursor;
     setIsLoadingMessages(true);
 
     socketRef.current.emit(
@@ -235,6 +260,7 @@ export default function DmWidget() {
       });
 
       if (normalizedMessage.roomId === activeRoomId) {
+        shouldScrollToBottomRef.current = true;
         setMessages((prev) =>
           mergeMessages(prev, [normalizedMessage], "append"),
         );
@@ -252,6 +278,24 @@ export default function DmWidget() {
 
     loadMessages(activeRoomId);
   }, [activeRoomId, isOpen]);
+
+  useEffect(() => {
+    if (!hasActiveConversation || activeRoomMessages.length === 0) return;
+
+    if (!shouldScrollToBottomRef.current) {
+      shouldScrollToBottomRef.current = true;
+      return;
+    }
+
+    const messageList = messageListRef.current;
+    if (messageList) {
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+  }, [
+    activeRoomLastMessageKey,
+    activeRoomMessages.length,
+    hasActiveConversation,
+  ]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -281,6 +325,7 @@ export default function DmWidget() {
       createdAt: new Date().toISOString(),
     };
 
+    shouldScrollToBottomRef.current = true;
     setMessages((prev) => mergeMessages(prev, [optimisticMessage], "append"));
 
     socketRef.current.emit("sendMessage", {
@@ -333,8 +378,8 @@ export default function DmWidget() {
           className={cn(
             "bg-background shadow-[0_18px_60px_rgba(0,0,0,0.22)] flex flex-col overflow-hidden rounded-3xl border",
             hasActiveConversation
-              ? "h-[560px] w-[360px] md:h-[640px] md:w-[420px]"
-              : "h-[350px] w-[300px] md:h-[380px] md:w-[320px]",
+              ? "h-[min(560px,calc(100dvh-40px))] w-[360px] md:h-[min(640px,calc(100dvh-112px))] md:w-[420px]"
+              : "h-[min(350px,calc(100dvh-40px))] w-[300px] md:h-[min(380px,calc(100dvh-112px))] md:w-[320px]",
           )}
         >
           {!hasActiveConversation ? (
@@ -368,7 +413,7 @@ export default function DmWidget() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 {sortedRooms.length === 0 ? (
                   <div className="text-muted-foreground flex h-full items-center justify-center p-6 text-sm">
                     아직 대화가 없습니다.
@@ -398,6 +443,9 @@ export default function DmWidget() {
                           }
                           alt={`${peer?.nickname ?? "사용자"} 프로필 이미지`}
                           className="h-12 w-12 rounded-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.src = defaultAvatar.src;
+                          }}
                         />
 
                         <div className="min-w-0 flex-1">
@@ -425,7 +473,7 @@ export default function DmWidget() {
             </>
           ) : (
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex items-center justify-between border-b px-3 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b px-3 py-3">
                 <button
                   type="button"
                   onClick={closeDetail}
@@ -435,7 +483,16 @@ export default function DmWidget() {
                   <ArrowLeft className="h-5 w-5" />
                 </button>
 
-                <div className="flex min-w-0 flex-1 items-center justify-start gap-2">
+                <div
+                  className={cn(
+                    "flex min-w-0 flex-1 items-center justify-start gap-2",
+                    activePeer?.id && "cursor-pointer hover:opacity-80",
+                  )}
+                  onClick={() => {
+                    if (!activePeer?.id) return;
+                    router.push(`/profile/${activePeer.id}`);
+                  }}
+                >
                   <img
                     src={
                       activePeer?.avatarUrl || activePeer?.avatar_url
@@ -446,6 +503,9 @@ export default function DmWidget() {
                     }
                     alt={`${activePeer?.nickname ?? "사용자"} 프로필 이미지`}
                     className="h-9 w-9 rounded-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = defaultAvatar.src;
+                    }}
                   />
 
                   <div className="min-w-0 text-left">
@@ -480,7 +540,10 @@ export default function DmWidget() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
+              <div
+                ref={messageListRef}
+                className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4"
+              >
                 {hasNextPage && (
                   <div className="flex justify-center pb-2">
                     <Button
@@ -511,16 +574,34 @@ export default function DmWidget() {
                 ) : (
                   activeRoomMessages.map((message, index) => {
                     const isMine = message.senderId === currentUserId;
+                    const previousMessage = activeRoomMessages[index - 1];
                     const nextMessage = activeRoomMessages[index + 1];
+                    const nextMessageStartsNewTimeGroup = nextMessage
+                      ? shouldShowMessageTimeDivider(nextMessage, message)
+                      : false;
                     const shouldShowAvatar =
-                      !isMine && nextMessage?.senderId !== message.senderId;
+                      !isMine &&
+                      (!nextMessage ||
+                        nextMessage.senderId !== message.senderId ||
+                        nextMessageStartsNewTimeGroup);
+                    const showTimeDivider = shouldShowMessageTimeDivider(
+                      message,
+                      previousMessage,
+                    );
                     const senderAvatarUrl = getUserAvatarUrl(
                       message.sender ?? activePeer ?? undefined,
                     );
+                    const senderProfileId =
+                      message.sender?.id ?? activePeer?.id ?? null;
 
                     return (
+                      <Fragment key={message.id ?? `${message.createdAt}-${index}`}>
+                        {showTimeDivider && (
+                          <div className="text-muted-foreground/80 py-6 text-center text-xs font-normal">
+                            {formatMessageTime(message.createdAt)}
+                          </div>
+                        )}
                       <div
-                        key={message.id ?? `${message.createdAt}-${index}`}
                         className={cn(
                           "flex items-end gap-2",
                           isMine ? "justify-end" : "justify-start",
@@ -540,7 +621,14 @@ export default function DmWidget() {
                                   activePeer?.nickname ??
                                   "사용자"
                                 } 프로필 이미지`}
-                                className="h-7 w-7 rounded-full object-cover"
+                                className="h-7 w-7 cursor-pointer rounded-full object-cover hover:opacity-80"
+                                onClick={() => {
+                                  if (!senderProfileId) return;
+                                  router.push(`/profile/${senderProfileId}`);
+                                }}
+                                onError={(event) => {
+                                  event.currentTarget.src = defaultAvatar.src;
+                                }}
                               />
                             )}
                           </div>
@@ -578,12 +666,13 @@ export default function DmWidget() {
                           </>
                         )}
                       </div>
+                      </Fragment>
                     );
                   })
                 )}
               </div>
 
-              <div className="border-t p-3">
+              <div className="shrink-0 border-t p-3">
                 <div className="flex items-center gap-2 rounded-full border px-3 py-2">
                   <Input
                     value={content}

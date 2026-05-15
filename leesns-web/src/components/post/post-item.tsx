@@ -1,6 +1,5 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
 import defaultAvatar from "@/assets/default-avatar.png";
 import defaultPostImage from "@/assets/default-post-image.png";
 import {
@@ -8,15 +7,18 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import { formatTimeAgo } from "@/lib/time";
-import EditPostItemButton from "./edit-post-item-button";
-import DeletePostItemButton from "./delete-post-item-button";
-import LikePostButton from "./like-post-button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { usePostByIdData } from "@/hooks/use-post-by-id-data";
 import { toBackendImageUrl } from "@/lib/image-url";
-import Link from "next/link";
+import { formatTimeAgo } from "@/lib/time";
 import { useUserId } from "@/store/auth";
 import type { Post } from "@/types";
+import { MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import DeletePostItemButton from "./delete-post-item-button";
+import EditPostItemButton from "./edit-post-item-button";
+import LikePostButton from "./like-post-button";
 
 function getPostImageUrls(post: Post) {
   const imageUrls = [
@@ -80,6 +82,7 @@ export default function PostItem({
   type: "FEED" | "DETAIL";
 }) {
   const userId = useUserId();
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const { data: post, isPending, error } = usePostByIdData(postId, type);
 
   if (isPending) {
@@ -119,7 +122,7 @@ export default function PostItem({
           <Link href={author.id ? `/profile/${author.id}` : "#"}>
             <SafeAvatar
               src={avatarUrl}
-              alt={`${author.nickname}의 프로필 이미지`}
+              alt={`${author.nickname} 프로필 이미지`}
               className="h-10 w-10 rounded-full object-cover"
             />
           </Link>
@@ -154,31 +157,43 @@ export default function PostItem({
         )}
 
         {imageUrls.length > 0 && (
-          <Carousel>
-            <CarouselContent>
-              {imageUrls.map((url, index) => (
-                <CarouselItem className="basis-4/5 md:basis-3/5" key={url}>
-                  <div className="overflow-hidden rounded-lg border bg-muted">
-                    {type === "FEED" ? (
-                      <Link href={`/post/${post.id}`}>
-                        <SafePostImage
-                          src={url}
-                          className="max-h-[350px] w-full cursor-pointer object-cover"
-                          alt={`게시글 첨부 이미지 ${index + 1}`}
-                        />
-                      </Link>
-                    ) : (
+          <>
+            <Carousel>
+              <CarouselContent>
+                {imageUrls.map((url, index) => (
+                  <CarouselItem className="basis-4/5 md:basis-3/5" key={url}>
+                    <button
+                      type="button"
+                      className="w-full overflow-hidden rounded-lg border bg-muted"
+                      onClick={() => setPreviewImageUrl(url)}
+                    >
                       <SafePostImage
                         src={url}
-                        className="max-h-[350px] w-full object-cover"
+                        className="max-h-[350px] w-full cursor-zoom-in object-cover"
                         alt={`게시글 첨부 이미지 ${index + 1}`}
                       />
-                    )}
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
+                    </button>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+
+            <Dialog
+              open={Boolean(previewImageUrl)}
+              onOpenChange={(open) => {
+                if (!open) setPreviewImageUrl(null);
+              }}
+            >
+              <DialogContent className="max-h-[92vh] max-w-5xl border-0 bg-transparent p-0 shadow-none">
+                <DialogTitle className="sr-only">게시글 이미지</DialogTitle>
+                <SafePostImage
+                  src={previewImageUrl}
+                  alt="게시글 이미지 크게 보기"
+                  className="max-h-[88vh] w-full rounded-lg object-contain"
+                />
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </div>
 
@@ -193,7 +208,7 @@ export default function PostItem({
           <Link href={`/post/${post.id}`}>
             <div className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm">
               <MessageCircle className="h-4 w-4" />
-              <span>댓글 보기</span>
+              <span>댓글 {post.commentCount ?? 0}</span>
             </div>
           </Link>
         )}

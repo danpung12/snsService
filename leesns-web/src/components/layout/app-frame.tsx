@@ -2,17 +2,24 @@
 
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
-import { SunIcon } from "lucide-react";
+import { Moon, SunIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import DmWidget from "../chat/dm-widget";
 import NotificationButton from "./header/notification-button";
 import ProfileButton from "./header/profile-button";
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { resolvedTheme, setTheme } = useTheme();
   const isChatPage = pathname.startsWith("/chat/");
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/auth/success");
+  const isDarkMode = resolvedTheme === "dark";
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -32,12 +39,25 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
             <Image src={logo} alt="로고" className="h-5 w-auto" />
             <div className="font-bold">공통 헤더</div>
           </Link>
-          <div className="flex items-center gap-5">
-            <div className="hover:bg-muted cursor-pointer rounded-full p-2">
-              <SunIcon />
-            </div>
-            <NotificationButton />
-            <ProfileButton />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+              onClick={() => setTheme(isDarkMode ? "light" : "dark")}
+              aria-label={isDarkMode ? "라이트 모드로 변경" : "다크 모드로 변경"}
+            >
+              {isDarkMode ? (
+                <Moon className="size-6" />
+              ) : (
+                <SunIcon className="size-6" />
+              )}
+            </button>
+            {!isAuthPage && (
+              <>
+                <NotificationButton />
+                <ProfileButton />
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -57,6 +57,9 @@ export default function ProfileInfo({ userId }: { userId: string }) {
         src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
         alt={`${profile.nickname} 프로필 이미지`}
         className="h-30 w-30 rounded-full object-cover"
+        onError={(event) => {
+          event.currentTarget.src = defaultAvatar.src;
+        }}
       />
 
       <div className="flex flex-col items-center gap-3">

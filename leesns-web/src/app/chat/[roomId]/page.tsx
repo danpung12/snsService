@@ -13,11 +13,12 @@ import type {
   CursorPaginatedChatMessages,
   User,
 } from "@/types";
-import { Info, MessageCircle, Search, SendHorizonal, X } from "lucide-react";
-import Link from "next/link";
+import { MessageCircle, Search, SendHorizonal, X } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   FormEvent,
+  Fragment,
+  MouseEventHandler,
   useCallback,
   useEffect,
   useMemo,
@@ -27,6 +28,7 @@ import {
 import type { Socket } from "socket.io-client";
 
 const MESSAGE_PAGE_SIZE = 20;
+const MESSAGE_TIME_DIVIDER_INTERVAL_MS = 60 * 60 * 1000;
 
 function getRoomPeer(room: ChatRoom | undefined, currentUserId: string) {
   return room?.users?.find((user) => String(user.id) !== currentUserId);
@@ -40,16 +42,19 @@ function SafeAvatar({
   src,
   alt,
   className,
+  onClick,
 }: {
   src?: string | null;
   alt: string;
   className?: string;
+  onClick?: MouseEventHandler<HTMLImageElement>;
 }) {
   return (
     <img
       src={src ? toBackendImageUrl(src) : defaultAvatar.src}
       alt={alt}
       className={className}
+      onClick={onClick}
       onError={(event) => {
         event.currentTarget.src = defaultAvatar.src;
       }}
@@ -65,6 +70,23 @@ function formatMessageTime(time?: string | Date) {
     minute: "2-digit",
     hour12: true,
   }).format(new Date(time));
+}
+
+function shouldShowMessageTimeDivider(
+  message: ChatMessage,
+  previousMessage?: ChatMessage,
+) {
+  if (!message.createdAt) return false;
+  if (!previousMessage?.createdAt) return true;
+
+  const currentTime = new Date(message.createdAt).getTime();
+  const previousTime = new Date(previousMessage.createdAt).getTime();
+
+  if (!Number.isFinite(currentTime) || !Number.isFinite(previousTime)) {
+    return false;
+  }
+
+  return currentTime - previousTime >= MESSAGE_TIME_DIVIDER_INTERVAL_MS;
 }
 
 function formatRoomTime(time?: string | Date) {
@@ -128,6 +150,8 @@ export default function ChatRoomPage() {
   const targetUserId = searchParams.get("targetUserId");
   const targetNickname = searchParams.get("targetNickname") ?? "상대";
   const socketRef = useRef<Socket | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToBottomRef = useRef(true);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [nextMessageCursor, setNextMessageCursor] = useState<string | null>(
@@ -144,6 +168,10 @@ export default function ChatRoomPage() {
     () => messages.filter((message) => message.roomId === selectedRoomId),
     [messages, selectedRoomId],
   );
+  const roomLastMessageKey =
+    roomMessages.length > 0
+      ? getMessageKey(roomMessages[roomMessages.length - 1])
+      : "";
   const selectedPeer = getRoomPeer(selectedRoom, currentUserId);
   const headerUser = selectedPeer ?? {
     id: targetUserId ?? "",
@@ -163,6 +191,7 @@ export default function ChatRoomPage() {
     (socket: Socket, cursor?: string | null) => {
       if (!selectedRoomId) return;
 
+      shouldScrollToBottomRef.current = !cursor;
       setIsMessagesLoading(true);
 
       socket.emit(
@@ -223,6 +252,7 @@ export default function ChatRoomPage() {
         take: MESSAGE_PAGE_SIZE,
       },
       (response: CursorPaginatedChatMessages) => {
+        shouldScrollToBottomRef.current = true;
         const fetchedMessages = (response?.data ?? []).map(normalizeMessage);
         setMessages(fetchedMessages);
         setNextMessageCursor(response?.nextCursor ?? null);
@@ -239,6 +269,7 @@ export default function ChatRoomPage() {
       const normalizedMessage = normalizeMessage(message);
 
       if (normalizedMessage.roomId === selectedRoomId) {
+        shouldScrollToBottomRef.current = true;
         setMessages((prevMessages) =>
           mergeMessages(prevMessages, [normalizedMessage], "append"),
         );
@@ -263,6 +294,20 @@ export default function ChatRoomPage() {
       socketRef.current.emit("createChat", { userIds });
     }
   }, [chatRooms, currentUserId, selectedRoomId, targetUserId]);
+
+  useEffect(() => {
+    if (roomMessages.length === 0) return;
+
+    if (!shouldScrollToBottomRef.current) {
+      shouldScrollToBottomRef.current = true;
+      return;
+    }
+
+    const messageList = messageListRef.current;
+    if (messageList) {
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+  }, [roomLastMessageKey, roomMessages.length]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -293,7 +338,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <main className="mx-auto grid h-dvh w-full max-w-[1440px] grid-cols-1 overflow-hidden bg-background md:h-[calc(100vh-92px)] md:min-h-[620px] md:grid-cols-[300px_minmax(0,1fr)] md:rounded-lg md:border">
+    <main className="mx-auto grid h-[calc(100dvh-60px)] w-full max-w-[1440px] grid-cols-1 overflow-hidden bg-background md:h-[calc(100dvh-92px)] md:grid-cols-[300px_minmax(0,1fr)] md:rounded-lg md:border">
       <aside className="hidden min-w-0 flex-col border-r md:flex">
         <div className="flex h-16 items-center justify-between border-b px-4">
           <h1 className="text-lg font-bold">메시지</h1>
@@ -307,7 +352,7 @@ export default function ChatRoomPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {chatRooms.length === 0 ? (
             <div className="text-muted-foreground px-4 py-10 text-center text-sm">
               아직 채팅방이 없습니다.
@@ -357,8 +402,8 @@ export default function ChatRoomPage() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-col">
-        <div className="flex h-14 items-center justify-start border-b px-4 md:h-16 md:px-5">
+      <section className="flex min-h-0 min-w-0 flex-col">
+        <div className="flex h-14 shrink-0 items-center justify-start border-b px-4 md:h-16 md:px-5">
           <Button
             type="button"
             variant="ghost"
@@ -370,7 +415,16 @@ export default function ChatRoomPage() {
             <X className="h-5 w-5" />
           </Button>
 
-          <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={cn(
+              "flex min-w-0 items-center gap-3",
+              headerUser.id && "cursor-pointer hover:opacity-80",
+            )}
+            onClick={() => {
+              if (!headerUser.id) return;
+              router.push(`/profile/${headerUser.id}`);
+            }}
+          >
             <SafeAvatar
               src={headerAvatarUrl}
               alt={`${headerUser.nickname} 프로필 이미지`}
@@ -385,21 +439,12 @@ export default function ChatRoomPage() {
             </div>
           </div>
 
-          {headerUser.id && (
-            <Button
-              asChild
-              variant="ghost"
-              size="icon-sm"
-              className="hidden md:inline-flex"
-            >
-              <Link href={`/profile/${headerUser.id}`}>
-                <Info className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
         </div>
 
-        <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-5 py-4">
+        <div
+          ref={messageListRef}
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 py-4"
+        >
           {canLoadMoreMessages && (
             <div className="flex justify-center pb-2">
               <Button
@@ -423,16 +468,34 @@ export default function ChatRoomPage() {
           ) : (
             roomMessages.map((message, index) => {
               const isMine = message.senderId === currentUserId;
+              const previousMessage = roomMessages[index - 1];
               const nextMessage = roomMessages[index + 1];
+              const nextMessageStartsNewTimeGroup = nextMessage
+                ? shouldShowMessageTimeDivider(nextMessage, message)
+                : false;
               const shouldShowSenderAvatar =
-                !isMine && nextMessage?.senderId !== message.senderId;
+                !isMine &&
+                (!nextMessage ||
+                  nextMessage.senderId !== message.senderId ||
+                  nextMessageStartsNewTimeGroup);
+              const showTimeDivider = shouldShowMessageTimeDivider(
+                message,
+                previousMessage,
+              );
               const senderAvatarUrl = getUserAvatarUrl(
                 message.sender ?? selectedPeer ?? headerUser,
               );
+              const senderProfileId =
+                message.sender?.id ?? selectedPeer?.id ?? headerUser.id;
 
               return (
+                <Fragment key={message.id ?? `${message.createdAt}-${index}`}>
+                  {showTimeDivider && (
+                    <div className="text-muted-foreground/80 py-6 text-center text-xs font-normal">
+                      {formatMessageTime(message.createdAt)}
+                    </div>
+                  )}
                 <div
-                  key={message.id ?? `${message.createdAt}-${index}`}
                   className={cn(
                     "flex items-end gap-2",
                     isMine ? "justify-end" : "justify-start",
@@ -446,7 +509,11 @@ export default function ChatRoomPage() {
                           alt={`${
                             message.sender?.nickname ?? headerUser.nickname
                           } 프로필 이미지`}
-                          className="h-8 w-8 rounded-full object-cover"
+                          className="h-8 w-8 cursor-pointer rounded-full object-cover hover:opacity-80"
+                          onClick={() => {
+                            if (!senderProfileId) return;
+                            router.push(`/profile/${senderProfileId}`);
+                          }}
                         />
                       )}
                     </div>
@@ -482,12 +549,13 @@ export default function ChatRoomPage() {
                     </>
                   )}
                 </div>
+                </Fragment>
               );
             })
           )}
         </div>
 
-        <form className="flex gap-2 border-t p-4" onSubmit={handleSubmit}>
+        <form className="flex shrink-0 gap-2 border-t p-4" onSubmit={handleSubmit}>
           <Input
             value={content}
             onChange={(event) => setContent(event.target.value)}

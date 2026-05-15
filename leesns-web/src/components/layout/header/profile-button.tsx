@@ -1,13 +1,13 @@
 "use client";
 
 import defaultAvatar from "@/assets/default-avatar.png";
-import { useProfileData } from "@/hooks/use-profile-data";
-import { toBackendImageUrl } from "@/lib/image-url";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useProfileData } from "@/hooks/use-profile-data";
+import { toBackendImageUrl } from "@/lib/image-url";
 import { useSetLogout, useUserId } from "@/store/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,9 +20,6 @@ export default function ProfileButton() {
   const { data: profile } = useProfileData(userId);
 
   const signOut = () => {
-    // Note: To fully log out with HttpOnly cookies, 
-    // you would typically call a backend POST /auth/logout endpoint here
-    // that clears the HttpOnly cookies via Set-Cookie header.
     setLogout();
     router.push("/login");
   };
@@ -31,12 +28,25 @@ export default function ProfileButton() {
 
   return (
     <Popover>
-      <PopoverTrigger>
-        <img
-          src={profile?.avatarUrl ? toBackendImageUrl(profile.avatarUrl) : defaultAvatar.src}
-          alt="프로필 이미지"
-          className="h-6 w-6 cursor-pointer rounded-full object-cover"
-        />
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+          aria-label="프로필 메뉴"
+        >
+          <img
+            src={
+              profile?.avatarUrl
+                ? toBackendImageUrl(profile.avatarUrl)
+                : defaultAvatar.src
+            }
+            alt="프로필 이미지"
+            className="h-7 w-7 rounded-full object-cover"
+            onError={(event) => {
+              event.currentTarget.src = defaultAvatar.src;
+            }}
+          />
+        </button>
       </PopoverTrigger>
       <PopoverContent className="flex w-40 flex-col p-0">
         <PopoverPrimitive.Close asChild>
