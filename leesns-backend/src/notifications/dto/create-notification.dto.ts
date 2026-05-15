@@ -6,4 +6,6 @@ export class CreateNotificationDto {
   type!: NotificationType;
   postId?: number;
   commentId?: number;
+
+  chatRoomId?: string;
 }

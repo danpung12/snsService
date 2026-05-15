@@ -51,7 +51,7 @@ export interface FollowResponse {
   isFollowing: boolean;
 }
 
-export type NotificationType = "LIKE" | "COMMENT" | "FOLLOW";
+export type NotificationType = "LIKE" | "COMMENT" | "FOLLOW" | "MESSAGE";
 
 export interface Notification {
   id: string;
@@ -62,6 +62,7 @@ export interface Notification {
   receiverId: string;
   postId?: number | null;
   commentId?: number | null;
+  chatRoomId?: string | null;
   sender?: {
     id: string;
     nickname: string;

@@ -125,6 +125,7 @@ model ChatRoom{
 
   lastMessage String?
   lastMessageAt DateTime?
+  notification Notification[]
 
 }
 
@@ -146,6 +147,7 @@ enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
+  MESSAGE
 }
 
 model Notification{
@@ -174,6 +176,9 @@ model Notification{
   commentId Int?
   comment Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
+  chatRoomId  String?
+  chatRoom  ChatRoom? @relation(fields:[chatRoomId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   @@index([receiverId])
@@ -182,4 +187,5 @@ model Notification{
   @@index([commentId])
   @@index([isRead])
   @@index([createdAt])
+  @@index([chatRoomId])
 }

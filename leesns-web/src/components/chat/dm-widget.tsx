@@ -1,8 +1,11 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import defaultAvatar from "@/assets/default-avatar.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNotifications } from "@/hooks/use-notifications";
 import { createChatSocket } from "@/lib/chat-socket";
 import { toBackendImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
@@ -11,17 +14,12 @@ import type {
   ChatMessage,
   ChatRoom,
   CursorPaginatedChatMessages,
+  Notification,
   User,
 } from "@/types";
-import {
-  ArrowLeft,
-  Maximize2,
-  MessageCircle,
-  SendHorizonal,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Maximize2, MessageCircle, Send, SendHorizonal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 
 const MESSAGE_PAGE_SIZE = 20;
@@ -117,12 +115,63 @@ function mergeMessages(
   });
 }
 
+function isMatchingOptimisticMessage(
+  currentMessage: ChatMessage,
+  serverMessage: ChatMessage,
+) {
+  return (
+    currentMessage.id?.startsWith("optimistic-") &&
+    currentMessage.roomId === serverMessage.roomId &&
+    currentMessage.senderId === serverMessage.senderId &&
+    currentMessage.content === serverMessage.content
+  );
+}
+
+function getUnreadMessageNotifications(notifications: Notification[]) {
+  return notifications.filter(
+    (notification) => notification.type === "MESSAGE" && !notification.isRead,
+  );
+}
+
+function getRoomUnreadNotifications(
+  notifications: Notification[],
+  roomId: string,
+) {
+  return notifications.filter(
+    (notification) =>
+      notification.type === "MESSAGE" &&
+      !notification.isRead &&
+      notification.chatRoomId === roomId,
+  );
+}
+
 export default function DmWidget() {
   const router = useRouter();
   const currentUserId = useUserId();
   const socketRef = useRef<Socket | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(true);
+  const activeRoomIdRef = useRef<string | null>(null);
+
+  const { notifications, markAsRead } = useNotifications();
+  const notificationsRef = useRef<Notification[]>([]);
+  const markAsReadRef = useRef(markAsRead);
+  const unreadMessageNotifications = useMemo(
+    () => getUnreadMessageNotifications(notifications),
+    [notifications],
+  );
+  const unreadMessageRoomIds = useMemo(
+    () =>
+      new Set(
+        unreadMessageNotifications
+          .map((notification) => notification.chatRoomId)
+          .filter(Boolean),
+      ),
+    [unreadMessageNotifications],
+  );
+  const unreadMessageCount = unreadMessageNotifications.length;
+  const unreadBadgeText =
+    unreadMessageCount > 99 ? "99+" : String(unreadMessageCount);
 
   const [isOpen, setIsOpen] = useState(false);
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -132,6 +181,9 @@ export default function DmWidget() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [cachedRoomIds, setCachedRoomIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const sortedRooms = useMemo(() => {
     return [...rooms].sort((left, right) => {
@@ -169,17 +221,6 @@ export default function DmWidget() {
       ? getMessageKey(activeRoomMessages[activeRoomMessages.length - 1])
       : "";
 
-  useEffect(() => {
-    if (!activeRoomId) return;
-
-    setMessages((prev) =>
-      prev.map((message) => ({
-        ...message,
-        roomId: message.roomId ?? message.chatRoomId ?? activeRoomId,
-      })),
-    );
-  }, [activeRoomId]);
-
   const hasActiveConversation = Boolean(activeRoomId && activeRoom);
 
   const activeHeaderTime =
@@ -187,23 +228,73 @@ export default function DmWidget() {
     activeRoom?.messages?.[0]?.createdAt ??
     activeRoom?.createdAt;
 
-  const refreshRooms = () => {
+  useEffect(() => {
+    notificationsRef.current = notifications;
+    markAsReadRef.current = markAsRead;
+  }, [markAsRead, notifications]);
+
+  useEffect(() => {
+    activeRoomIdRef.current = activeRoomId;
+  }, [activeRoomId]);
+
+  const markRoomNotificationsAsRead = useCallback(
+    (roomId: string) => {
+      const roomNotifications = getRoomUnreadNotifications(
+        notificationsRef.current,
+        roomId,
+      );
+
+      if (roomNotifications.length === 0) return;
+
+      void Promise.all(
+        roomNotifications.map((notification) =>
+          markAsReadRef.current(notification),
+        ),
+      ).catch((error) => {
+        console.error("Failed to mark message notifications as read", error);
+      });
+    },
+    [],
+  );
+
+  const joinChatRooms = useCallback((targetRooms: ChatRoom[]) => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    targetRooms.forEach((room) => {
+      const userIds = room.users?.map((user) => String(user.id)) ?? [];
+
+      if (userIds.length >= 2) {
+        socket.emit("createChat", { userIds });
+      }
+    });
+  }, []);
+
+  const refreshRooms = useCallback(() => {
     if (!socketRef.current || !currentUserId) return;
 
     socketRef.current.emit(
       "getMyChatRooms",
       { userId: currentUserId },
       (result: ChatRoom[]) => {
-        setRooms(result ?? []);
+        const nextRooms = result ?? [];
+        setRooms(nextRooms);
+        joinChatRooms(nextRooms);
       },
     );
-  };
+  }, [currentUserId, joinChatRooms]);
 
-  const loadMessages = (roomId: string, cursor?: string | null) => {
+  const loadMessages = (
+    roomId: string,
+    cursor?: string | null,
+    options?: { silent?: boolean },
+  ) => {
     if (!socketRef.current) return;
 
     shouldScrollToBottomRef.current = !cursor;
-    setIsLoadingMessages(true);
+    if (!options?.silent) {
+      setIsLoadingMessages(true);
+    }
 
     socketRef.current.emit(
       "getMessages",
@@ -218,15 +309,37 @@ export default function DmWidget() {
         setMessages((prev) =>
           cursor
             ? mergeMessages(prev, fetchedMessages, "prepend")
-            : fetchedMessages,
+            : mergeMessages(
+                prev.filter((message) => message.roomId !== roomId),
+                fetchedMessages,
+                "append",
+              ),
         );
 
+        setCachedRoomIds((prev) => {
+          if (prev.has(roomId)) return prev;
+
+          const next = new Set(prev);
+          next.add(roomId);
+          return next;
+        });
         setNextCursor(response?.nextCursor ?? null);
         setHasNextPage(Boolean(response?.hasNextPage));
         setIsLoadingMessages(false);
       },
     );
   };
+
+  useEffect(() => {
+    if (!activeRoomId) return;
+
+    setMessages((prev) =>
+      prev.map((message) => ({
+        ...message,
+        roomId: message.roomId ?? message.chatRoomId ?? activeRoomId,
+      })),
+    );
+  }, [activeRoomId]);
 
   useEffect(() => {
     if (!isOpen || !currentUserId) return;
@@ -259,25 +372,37 @@ export default function DmWidget() {
         return updated;
       });
 
-      if (normalizedMessage.roomId === activeRoomId) {
+      if (normalizedMessage.roomId === activeRoomIdRef.current) {
         shouldScrollToBottomRef.current = true;
         setMessages((prev) =>
-          mergeMessages(prev, [normalizedMessage], "append"),
+          mergeMessages(
+            prev.filter(
+              (message) =>
+                !isMatchingOptimisticMessage(message, normalizedMessage),
+            ),
+            [normalizedMessage],
+            "append",
+          ),
         );
       }
+
+      refreshRooms();
     });
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeRoomId, currentUserId, isOpen]);
+  }, [currentUserId, isOpen, refreshRooms]);
 
   useEffect(() => {
     if (!isOpen || !activeRoomId) return;
 
-    loadMessages(activeRoomId);
-  }, [activeRoomId, isOpen]);
+    loadMessages(activeRoomId, undefined, {
+      silent: cachedRoomIds.has(activeRoomId),
+    });
+    markRoomNotificationsAsRead(activeRoomId);
+  }, [activeRoomId, cachedRoomIds, isOpen, markRoomNotificationsAsRead]);
 
   useEffect(() => {
     if (!hasActiveConversation || activeRoomMessages.length === 0) return;
@@ -300,12 +425,16 @@ export default function DmWidget() {
   useEffect(() => {
     if (!isOpen) {
       setActiveRoomId(null);
-      setMessages([]);
       setContent("");
       setNextCursor(null);
       setHasNextPage(false);
     }
   }, [isOpen]);
+
+  const openRoom = (roomId: string) => {
+    setActiveRoomId(roomId);
+    markRoomNotificationsAsRead(roomId);
+  };
 
   const handleSend = () => {
     if (
@@ -313,8 +442,9 @@ export default function DmWidget() {
       !activeRoomId ||
       !content.trim() ||
       !currentUserId
-    )
+    ) {
       return;
+    }
 
     const optimisticMessage: ChatMessage = {
       id: `optimistic-${Date.now()}`,
@@ -339,7 +469,6 @@ export default function DmWidget() {
 
   const closeDetail = () => {
     setActiveRoomId(null);
-    setMessages([]);
     setNextCursor(null);
     setHasNextPage(false);
     setContent("");
@@ -366,17 +495,22 @@ export default function DmWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="bg-background shadow-[0_12px_40px_rgba(0,0,0,0.18)] hover:bg-muted flex h-16 w-16 items-center justify-center rounded-full border transition-transform hover:scale-105 md:h-22 md:w-22"
+          className="relative flex h-16 w-16 items-center justify-center rounded-full border bg-background shadow-[0_12px_36px_rgba(0,0,0,0.18)] transition-transform hover:scale-105 hover:bg-muted md:h-20 md:w-20"
           aria-label="DM 열기"
         >
-          <MessageCircle className="h-7 w-7" />
+          <Send className="h-7 w-7 -rotate-12" />
+          {unreadMessageCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 min-w-6 rounded-full bg-red-500 px-1.5 text-center text-xs font-bold leading-6 text-white">
+              {unreadBadgeText}
+            </span>
+          )}
         </button>
       )}
 
       {isOpen && (
         <div
           className={cn(
-            "bg-background shadow-[0_18px_60px_rgba(0,0,0,0.22)] flex flex-col overflow-hidden rounded-3xl border",
+            "flex flex-col overflow-hidden rounded-3xl border bg-background shadow-[0_18px_60px_rgba(0,0,0,0.22)]",
             hasActiveConversation
               ? "h-[min(560px,calc(100dvh-40px))] w-[360px] md:h-[min(640px,calc(100dvh-112px))] md:w-[420px]"
               : "h-[min(350px,calc(100dvh-40px))] w-[300px] md:h-[min(380px,calc(100dvh-112px))] md:w-[320px]",
@@ -396,8 +530,8 @@ export default function DmWidget() {
                   <button
                     type="button"
                     onClick={openLatestRoomFullChat}
-                    className="hover:bg-muted rounded-full p-2"
-                    aria-label="창 키우기"
+                    className="rounded-full p-2 hover:bg-muted"
+                    aria-label="채팅창 열기"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </button>
@@ -405,7 +539,7 @@ export default function DmWidget() {
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="hover:bg-muted rounded-full p-2"
+                    className="rounded-full p-2 hover:bg-muted"
                     aria-label="닫기"
                   >
                     <X className="h-5 w-5" />
@@ -415,7 +549,7 @@ export default function DmWidget() {
 
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {sortedRooms.length === 0 ? (
-                  <div className="text-muted-foreground flex h-full items-center justify-center p-6 text-sm">
+                  <div className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
                     아직 대화가 없습니다.
                   </div>
                 ) : (
@@ -423,17 +557,14 @@ export default function DmWidget() {
                     const peer = getRoomPeer(room, currentUserId);
                     const lastMessage = room.lastMessage;
                     const avatarUrl = getUserAvatarUrl(peer);
+                    const hasUnreadMessage = unreadMessageRoomIds.has(room.id);
 
                     return (
                       <button
                         key={room.id}
                         type="button"
-                        onClick={() => {
-                          setActiveRoomId(room.id);
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-muted",
-                        )}
+                        onClick={() => openRoom(room.id)}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-muted"
                       >
                         <img
                           src={
@@ -450,19 +581,36 @@ export default function DmWidget() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="truncate font-semibold">
+                            <div
+                              className={cn(
+                                "truncate",
+                                hasUnreadMessage ? "font-bold" : "font-semibold",
+                              )}
+                            >
                               {peer?.nickname ?? "알 수 없는 사용자"}
                             </div>
 
-                            <div className="text-muted-foreground shrink-0 text-xs">
+                            <div className="shrink-0 text-xs text-muted-foreground">
                               {formatRoomTime(
                                 room.lastMessageAt ?? room.createdAt,
                               )}
                             </div>
                           </div>
 
-                          <div className="text-muted-foreground truncate text-sm">
-                            {lastMessage ?? "새 대화를 시작해보세요."}
+                          <div className="mt-0.5 flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "min-w-0 flex-1 truncate text-sm",
+                                hasUnreadMessage
+                                  ? "font-bold text-foreground"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              {lastMessage ?? "첫 대화를 시작해보세요."}
+                            </div>
+                            {hasUnreadMessage && (
+                              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                            )}
                           </div>
                         </div>
                       </button>
@@ -477,7 +625,7 @@ export default function DmWidget() {
                 <button
                   type="button"
                   onClick={closeDetail}
-                  className="hover:bg-muted rounded-full p-2"
+                  className="rounded-full p-2 hover:bg-muted"
                   aria-label="목록으로 돌아가기"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -495,10 +643,8 @@ export default function DmWidget() {
                 >
                   <img
                     src={
-                      activePeer?.avatarUrl || activePeer?.avatar_url
-                        ? toBackendImageUrl(
-                            getUserAvatarUrl(activePeer) as string,
-                          )
+                      getUserAvatarUrl(activePeer)
+                        ? toBackendImageUrl(getUserAvatarUrl(activePeer) as string)
                         : defaultAvatar.src
                     }
                     alt={`${activePeer?.nickname ?? "사용자"} 프로필 이미지`}
@@ -513,7 +659,7 @@ export default function DmWidget() {
                       {activePeer?.nickname ?? "알 수 없는 사용자"}
                     </div>
 
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-xs text-muted-foreground">
                       {formatRoomTime(activeHeaderTime)}
                     </div>
                   </div>
@@ -523,8 +669,8 @@ export default function DmWidget() {
                   <button
                     type="button"
                     onClick={openActiveRoomFullChat}
-                    className="hover:bg-muted rounded-full p-2"
-                    aria-label="창 키우기"
+                    className="rounded-full p-2 hover:bg-muted"
+                    aria-label="채팅창 열기"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </button>
@@ -532,7 +678,7 @@ export default function DmWidget() {
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="hover:bg-muted rounded-full p-2"
+                    className="rounded-full p-2 hover:bg-muted"
                     aria-label="닫기"
                   >
                     <X className="h-5 w-5" />
@@ -564,11 +710,11 @@ export default function DmWidget() {
                 )}
 
                 {isLoadingMessages && activeRoomMessages.length === 0 ? (
-                  <div className="text-muted-foreground flex h-full items-center justify-center py-10 text-sm">
+                  <div className="flex h-full items-center justify-center py-10 text-sm text-muted-foreground">
                     메시지를 불러오는 중입니다.
                   </div>
                 ) : activeRoomMessages.length === 0 ? (
-                  <div className="text-muted-foreground flex h-full items-center justify-center py-10 text-sm">
+                  <div className="flex h-full items-center justify-center py-10 text-sm text-muted-foreground">
                     아직 메시지가 없습니다.
                   </div>
                 ) : (
@@ -597,75 +743,65 @@ export default function DmWidget() {
                     return (
                       <Fragment key={message.id ?? `${message.createdAt}-${index}`}>
                         {showTimeDivider && (
-                          <div className="text-muted-foreground/80 py-6 text-center text-xs font-normal">
+                          <div className="py-6 text-center text-xs font-normal text-muted-foreground/80">
                             {formatMessageTime(message.createdAt)}
                           </div>
                         )}
-                      <div
-                        className={cn(
-                          "flex items-end gap-2",
-                          isMine ? "justify-end" : "justify-start",
-                        )}
-                      >
-                        {!isMine && (
-                          <div className="h-7 w-7 shrink-0 self-end">
-                            {shouldShowAvatar && (
-                              <img
-                                src={
-                                  senderAvatarUrl
-                                    ? toBackendImageUrl(senderAvatarUrl)
-                                    : defaultAvatar.src
-                                }
-                                alt={`${
-                                  message.sender?.nickname ??
-                                  activePeer?.nickname ??
-                                  "사용자"
-                                } 프로필 이미지`}
-                                className="h-7 w-7 cursor-pointer rounded-full object-cover hover:opacity-80"
-                                onClick={() => {
-                                  if (!senderProfileId) return;
-                                  router.push(`/profile/${senderProfileId}`);
-                                }}
-                                onError={(event) => {
-                                  event.currentTarget.src = defaultAvatar.src;
-                                }}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {isMine ? (
-                          <>
-                            <div className="text-muted-foreground text-[11px]">
-                              {formatMessageTime(message.createdAt)}
-                            </div>
-
-                            <div
-                              className={cn(
-                                "max-w-[72%] rounded-2xl px-3 py-2 text-sm leading-6",
-                                "rounded-br-md bg-primary text-primary-foreground",
+                        <div
+                          className={cn(
+                            "flex items-end gap-2",
+                            isMine ? "justify-end" : "justify-start",
+                          )}
+                        >
+                          {!isMine && (
+                            <div className="h-7 w-7 shrink-0 self-end">
+                              {shouldShowAvatar && (
+                                <img
+                                  src={
+                                    senderAvatarUrl
+                                      ? toBackendImageUrl(senderAvatarUrl)
+                                      : defaultAvatar.src
+                                  }
+                                  alt={`${
+                                    message.sender?.nickname ??
+                                    activePeer?.nickname ??
+                                    "사용자"
+                                  } 프로필 이미지`}
+                                  className="h-7 w-7 cursor-pointer rounded-full object-cover hover:opacity-80"
+                                  onClick={() => {
+                                    if (!senderProfileId) return;
+                                    router.push(`/profile/${senderProfileId}`);
+                                  }}
+                                  onError={(event) => {
+                                    event.currentTarget.src = defaultAvatar.src;
+                                  }}
+                                />
                               )}
-                            >
-                              {message.content}
                             </div>
-                          </>
-                        ) : (
-                          <>
-                            <div
-                              className={cn(
-                                "max-w-[72%] rounded-2xl px-3 py-2 text-sm leading-6",
-                                "rounded-bl-md bg-muted text-foreground",
-                              )}
-                            >
-                              {message.content}
-                            </div>
+                          )}
 
-                            <div className="text-muted-foreground text-[11px]">
-                              {formatMessageTime(message.createdAt)}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                          {isMine ? (
+                            <>
+                              <div className="text-[11px] text-muted-foreground">
+                                {formatMessageTime(message.createdAt)}
+                              </div>
+
+                              <div className="max-w-[72%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-sm leading-6 text-primary-foreground">
+                                {message.content}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="max-w-[72%] rounded-2xl rounded-bl-md bg-muted px-3 py-2 text-sm leading-6 text-foreground">
+                                {message.content}
+                              </div>
+
+                              <div className="text-[11px] text-muted-foreground">
+                                {formatMessageTime(message.createdAt)}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </Fragment>
                     );
                   })
@@ -691,7 +827,7 @@ export default function DmWidget() {
                     type="button"
                     onClick={handleSend}
                     disabled={!content.trim()}
-                    className="bg-primary text-primary-foreground disabled:bg-muted inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition disabled:text-muted-foreground"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:bg-muted disabled:text-muted-foreground"
                     aria-label="메시지 보내기"
                   >
                     <SendHorizonal className="h-4 w-4" />

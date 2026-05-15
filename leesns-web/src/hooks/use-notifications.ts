@@ -34,11 +34,17 @@ export function useNotifications() {
     enabled: !!userId,
   });
 
-  const markAsReadMutation = useMutation({
+  const {
+    mutateAsync: markAsReadMutateAsync,
+    isPending: isMarkingAsRead,
+  } = useMutation({
     mutationFn: markNotificationAsRead,
   });
 
-  const markAllAsReadMutation = useMutation({
+  const {
+    mutateAsync: markAllAsReadMutateAsync,
+    isPending: isMarkingAllAsRead,
+  } = useMutation({
     mutationFn: markAllNotificationsAsRead,
   });
 
@@ -125,7 +131,7 @@ export function useNotifications() {
 
   const markAsRead = useCallback(
     async (notification: Notification) => {
-      await markAsReadMutation.mutateAsync(notification.id);
+      await markAsReadMutateAsync(notification.id);
 
       if (!notification.isRead) {
         setReadNotificationIds((current) => {
@@ -135,11 +141,11 @@ export function useNotifications() {
         });
       }
     },
-    [markAsReadMutation],
+    [markAsReadMutateAsync],
   );
 
   const markAllAsRead = useCallback(async () => {
-    await markAllAsReadMutation.mutateAsync();
+    await markAllAsReadMutateAsync();
     setReadNotificationIds((current) => {
       const next = new Set(current);
       rawNotifications.forEach((notification) => {
@@ -147,7 +153,7 @@ export function useNotifications() {
       });
       return next;
     });
-  }, [markAllAsReadMutation, rawNotifications]);
+  }, [markAllAsReadMutateAsync, rawNotifications]);
 
   return {
     notifications,
@@ -156,6 +162,7 @@ export function useNotifications() {
     fetchNotifications: notificationsQuery.refetch,
     markAsRead,
     markAllAsRead,
-    isMarkingAllAsRead: markAllAsReadMutation.isPending,
+    isMarkingAsRead,
+    isMarkingAllAsRead,
   };
 }

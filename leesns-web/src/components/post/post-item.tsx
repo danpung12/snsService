@@ -9,6 +9,10 @@ import {
 } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { usePostByIdData } from "@/hooks/use-post-by-id-data";
+import {
+  hasFailedImageUrl,
+  rememberFailedImageUrl,
+} from "@/lib/image-fallback-cache";
 import { toBackendImageUrl } from "@/lib/image-url";
 import { formatTimeAgo } from "@/lib/time";
 import { useUserId } from "@/store/auth";
@@ -41,13 +45,22 @@ function SafeAvatar({
   alt: string;
   className?: string;
 }) {
+  const resolvedSrc = src ? toBackendImageUrl(src) : defaultAvatar.src;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageSrc =
+    failedSrc === resolvedSrc || hasFailedImageUrl(resolvedSrc)
+      ? defaultAvatar.src
+      : resolvedSrc;
+
   return (
     <img
-      src={src ? toBackendImageUrl(src) : defaultAvatar.src}
+      src={imageSrc}
       alt={alt}
       className={className}
       onError={(event) => {
+        rememberFailedImageUrl(resolvedSrc);
         event.currentTarget.src = defaultAvatar.src;
+        setFailedSrc(resolvedSrc);
       }}
     />
   );
@@ -62,13 +75,22 @@ function SafePostImage({
   alt: string;
   className?: string;
 }) {
+  const resolvedSrc = src || defaultPostImage.src;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageSrc =
+    failedSrc === resolvedSrc || hasFailedImageUrl(resolvedSrc)
+      ? defaultPostImage.src
+      : resolvedSrc;
+
   return (
     <img
-      src={src || defaultPostImage.src}
+      src={imageSrc}
       alt={alt}
       className={className}
       onError={(event) => {
+        rememberFailedImageUrl(resolvedSrc);
         event.currentTarget.src = defaultPostImage.src;
+        setFailedSrc(resolvedSrc);
       }}
     />
   );

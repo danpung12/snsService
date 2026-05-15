@@ -27,6 +27,8 @@ function getNotificationMessage(notification: Notification) {
       return `${nickname}님이 회원님의 게시글에 댓글을 남겼습니다.`;
     case "FOLLOW":
       return `${nickname}님이 회원님을 팔로우했습니다.`;
+    case "MESSAGE":
+      return `${nickname}님이 메시지를 보냈습니다.`;
     default:
       return "새 알림이 도착했습니다.";
   }
@@ -42,6 +44,10 @@ function getNotificationHref(notification: Notification) {
 
   if (notification.type === "FOLLOW" && notification.senderId) {
     return `/profile/${notification.senderId}`;
+  }
+
+  if (notification.type === "MESSAGE" && notification.chatRoomId) {
+    return `/chat/${notification.chatRoomId}`;
   }
 
   return null;
@@ -67,22 +73,32 @@ export default function NotificationButton() {
   const [open, setOpen] = useState(false);
   const {
     notifications,
-    unreadCount,
     isLoading,
     markAsRead,
     markAllAsRead,
     isMarkingAllAsRead,
   } = useNotifications();
 
-  const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
+  const headerUnreadCount = notifications.filter(
+    (notification) =>
+      notification.type !== "MESSAGE" && !notification.isRead,
+  ).length;
+  const badgeText =
+    headerUnreadCount > 99 ? "99+" : String(headerUnreadCount);
   const unreadNotifications = notifications.filter(
-    (notification) => !notification.isRead,
+    (notification) =>
+      notification.type !== "MESSAGE" && !notification.isRead,
   );
 
   const handleNotificationClick = async (notification: Notification) => {
-    await markAsRead(notification);
-
     const href = getNotificationHref(notification);
+
+    try {
+      await markAsRead(notification);
+    } catch (error) {
+      console.error("Failed to mark notification as read", error);
+    }
+
     if (href) {
       setOpen(false);
       router.push(href);
@@ -104,7 +120,7 @@ export default function NotificationButton() {
           aria-label="알림"
         >
           <Bell className="size-6" />
-          {unreadCount > 0 && (
+          {headerUnreadCount > 0 && (
             <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-[10px] font-bold leading-5 text-white">
               {badgeText}
             </span>
@@ -118,7 +134,7 @@ export default function NotificationButton() {
             type="button"
             variant="ghost"
             size="xs"
-            disabled={unreadCount === 0 || isMarkingAllAsRead}
+            disabled={headerUnreadCount === 0 || isMarkingAllAsRead}
             onClick={handleMarkAllAsRead}
           >
             <CheckCheck className="size-3.5" />
@@ -128,13 +144,13 @@ export default function NotificationButton() {
 
         <div className="max-h-96 overflow-y-auto">
           {isLoading && (
-            <div className="text-muted-foreground px-4 py-8 text-center text-sm">
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               알림을 불러오는 중...
             </div>
           )}
 
           {!isLoading && unreadNotifications.length === 0 && (
-            <div className="text-muted-foreground px-4 py-8 text-center text-sm">
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               아직 알림이 없습니다.
             </div>
           )}
@@ -145,7 +161,7 @@ export default function NotificationButton() {
                 key={notification.id}
                 type="button"
                 className={cn(
-                  "hover:bg-muted flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0",
+                  "flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted",
                   !notification.isRead && "bg-muted/50",
                 )}
                 onClick={() => handleNotificationClick(notification)}
@@ -156,7 +172,7 @@ export default function NotificationButton() {
                     {getNotificationMessage(notification)}
                   </div>
                   {notification.post?.content && (
-                    <div className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+                    <div className="mt-1 line-clamp-1 text-xs text-muted-foreground">
                       {notification.post.content}
                     </div>
                   )}

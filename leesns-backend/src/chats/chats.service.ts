@@ -3,12 +3,15 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
 import { SendMessageDto } from './dto/send-message.dto';
-import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 import { ChatPaginationDto } from './dto/chat-pagination.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class ChatsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createChat(createChatDto: CreateChatDto) {
     const userIds = createChatDto.userIds.sort();
@@ -56,7 +59,7 @@ export class ChatsService {
       },
     });
 
-    await this.prisma.chatRoom.update({
+    const chatRoom = await this.prisma.chatRoom.update({
       where: {
         id: data.roomId,
       },
@@ -64,7 +67,28 @@ export class ChatsService {
         lastMessage: message.content,
         lastMessageAt: message.createdAt,
       },
+      include: {
+        users: true,
+      },
     });
+
+    const receiver = chatRoom.users.find((user) => user.id !== data.senderId);
+
+    if (receiver) {
+      const notificationData = {
+        receiverId: receiver.id,
+        senderId: data.senderId,
+        type: 'MESSAGE' as const,
+        chatRoomId: data.roomId,
+      };
+
+      const existNotify = await this.prisma.notification.findFirst({
+        where: { ...notificationData, isRead: false },
+      });
+
+      if (!existNotify)
+        await this.notificationsService.createNotification(notificationData);
+    }
     return message;
   }
 
