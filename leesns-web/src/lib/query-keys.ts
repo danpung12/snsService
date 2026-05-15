@@ -19,4 +19,9 @@ export const QUERY_KEYS = {
     all: ["comment"] as const,
     post: (postId: number) => ["comment", "post", postId] as const,
   },
+  notification: {
+    all: ["notification"] as const,
+    list: ["notification", "list"] as const,
+    unreadCount: ["notification", "unread-count"] as const,
+  },
 };

@@ -9,6 +9,7 @@ import { CommentsModule } from './comments/comments.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { FollowsModule } from './follows/follows.module';
 import { ChatsModule } from './chats/chats.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ChatsModule } from './chats/chats.module';
     UploadsModule,
     FollowsModule,
     ChatsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

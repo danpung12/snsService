@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class FollowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async followUser(followerId: string, followedId: string) {
     if (followerId === followedId) {
@@ -42,6 +46,12 @@ export class FollowsService {
         followerId,
         followedId,
       },
+    });
+
+    await this.notificationsService.createNotification({
+      receiverId: followedId,
+      senderId: followerId,
+      type: 'FOLLOW',
     });
 
     return {
@@ -98,6 +108,4 @@ export class FollowsService {
       },
     });
   }
-
-
 }

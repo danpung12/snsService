@@ -8,12 +8,14 @@ import { promises } from 'fs';
 import { join } from 'path';
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
 import { FollowsService } from 'src/follows/follows.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class PostsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly followsService: FollowsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private ImagePath(image: string | null) {
@@ -251,6 +253,13 @@ export class PostsService {
             increment: 1,
           },
         },
+      });
+
+      await this.notificationsService.createNotification({
+        type: 'LIKE',
+        senderId: userId,
+        receiverId: post.authorId,
+        postId,
       });
 
       return {

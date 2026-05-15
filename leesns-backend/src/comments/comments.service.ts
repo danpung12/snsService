@@ -3,23 +3,44 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
-  createComment(
+  async createComment(
     postId: number,
     authorId: string,
     commentDto: CreateCommentDto,
   ) {
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: {
         postId,
         authorId,
         ...commentDto,
       },
+      include: {
+        post: {
+          select: {
+            authorId: true,
+          },
+        },
+      },
     });
+
+    await this.notificationsService.createNotification({
+      receiverId: comment.post.authorId,
+      senderId: comment.authorId,
+      type: 'COMMENT',
+      commentId: comment.id,
+      postId,
+    });
+
+    return comment;
   }
 
   async getCommentbyPost(postId: number, paginationDto: CursorPaginationDto) {

@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import DmWidget from "../chat/dm-widget";
+import NotificationButton from "./header/notification-button";
 import ProfileButton from "./header/profile-button";
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
             <div className="hover:bg-muted cursor-pointer rounded-full p-2">
               <SunIcon />
             </div>
+            <NotificationButton />
             <ProfileButton />
           </div>
         </div>
