@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
@@ -28,6 +28,17 @@ export class CommentsService {
           select: {
             authorId: true,
           },
+        },
+      },
+    });
+
+    await this.prisma.post.update({
+      where: {
+        id: postId,
+      },
+      data: {
+        commentCount: {
+          increment: 1,
         },
       },
     });
@@ -63,10 +74,14 @@ export class CommentsService {
   }
 
   async getCommentbyId(commentId: number) {
-    const comment = await this.prisma.comment.findMany({
+    const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
       include: { author: { select: publicUserSelect } },
     });
+
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
 
     return comment;
   }
@@ -81,10 +96,21 @@ export class CommentsService {
   }
 
   async deleteComment(id: number) {
-    await this.getCommentbyId(id);
+    const comment = await this.getCommentbyId(id);
 
     await this.prisma.comment.delete({
       where: { id },
+    });
+
+    await this.prisma.post.update({
+      where: {
+        id: comment.postId,
+      },
+      data: {
+        commentCount: {
+          decrement: 1,
+        },
+      },
     });
   }
 }

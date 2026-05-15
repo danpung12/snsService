@@ -14,6 +14,9 @@ export function useDeleteComment(callbacks?: UseMutationCallback) {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.comment.post(variables.postId),
       });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.post.byId(variables.postId),
+      });
       callbacks?.onSuccess?.();
     },
     onError: (error) => {
