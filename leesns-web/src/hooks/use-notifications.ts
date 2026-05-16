@@ -26,12 +26,18 @@ export function useNotifications() {
     queryKey: [...QUERY_KEYS.notification.list, userId],
     queryFn: getNotifications,
     enabled: !!userId,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const unreadCountQuery = useQuery({
     queryKey: [...QUERY_KEYS.notification.unreadCount, userId],
     queryFn: getUnreadNotificationCount,
     enabled: !!userId,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const {

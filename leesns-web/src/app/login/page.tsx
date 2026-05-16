@@ -4,6 +4,7 @@ import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/use-auth";
+import { BACKEND_URL } from "@/lib/api_url";
 import { ArrowRight, Chrome, LockKeyhole, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,24 +16,30 @@ export default function LogInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (email.trim() === "") {
+    const formData = new FormData(e.currentTarget);
+    const submittedEmail = String(formData.get("email") ?? email).trim();
+    const submittedPassword = String(formData.get("password") ?? password);
+
+    if (submittedEmail === "") {
       window.alert("이메일을 입력해주세요");
       return;
     }
 
-    if (password.trim() === "") {
+    if (submittedPassword.trim() === "") {
       window.alert("비밀번호를 입력해주세요");
       return;
     }
 
-    login({ email, password });
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+    login({ email: submittedEmail, password: submittedPassword });
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "https://snsservice.onrender.com/auth/google";
+    window.location.href = `${BACKEND_URL}/auth/google`;
   };
 
   return (
@@ -59,6 +66,7 @@ export default function LogInPage() {
               <div className="relative">
                 <Mail className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
                 <Input
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 pl-10"
@@ -74,6 +82,7 @@ export default function LogInPage() {
               <div className="relative">
                 <LockKeyhole className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
                 <Input
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pl-10"

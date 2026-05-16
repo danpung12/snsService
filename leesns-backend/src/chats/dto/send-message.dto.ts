@@ -12,4 +12,8 @@ export class SendMessageDto {
   @IsString()
   @IsNotEmpty()
   content!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  receiverId!: string;
 }

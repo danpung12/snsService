@@ -44,7 +44,7 @@ export class ChatsService {
     });
   }
 
-  async createMessage(data: SendMessageDto) {
+  async createMessage(data: SendMessageDto, isViewingRoom = false) {
     const message = await this.prisma.message.create({
       data: {
         content: data.content,
@@ -74,7 +74,7 @@ export class ChatsService {
 
     const receiver = chatRoom.users.find((user) => user.id !== data.senderId);
 
-    if (receiver) {
+    if (receiver && !isViewingRoom) {
       const notificationData = {
         receiverId: receiver.id,
         senderId: data.senderId,

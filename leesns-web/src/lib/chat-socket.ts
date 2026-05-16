@@ -3,7 +3,8 @@ import { io } from "socket.io-client";
 
 export function createChatSocket() {
   return io(`${SOCKET_URL}/chats`, {
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
     withCredentials: true,
+    timeout: 8000,
   });
 }

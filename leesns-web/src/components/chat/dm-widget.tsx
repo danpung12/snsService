@@ -29,6 +29,15 @@ function getRoomPeer(room: ChatRoom | undefined, currentUserId: string) {
   return room?.users?.find((user) => String(user.id) !== currentUserId);
 }
 
+function getRoomPeerId(room: ChatRoom | undefined, currentUserId: string) {
+  const peer = getRoomPeer(room, currentUserId);
+  if (peer?.id) return String(peer.id);
+
+  return room?.dmKey
+    ?.split(":")
+    .find((userId) => userId && userId !== currentUserId);
+}
+
 function getUserAvatarUrl(user?: User) {
   return user?.avatarUrl || user?.avatar_url || null;
 }
@@ -152,6 +161,9 @@ export default function DmWidget() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(true);
   const activeRoomIdRef = useRef<string | null>(null);
+  const cachedRoomIdsRef = useRef<Set<string>>(new Set());
+  const roomsRef = useRef<ChatRoom[]>([]);
+  const optimisticMessageIdRef = useRef(0);
 
   const { notifications, markAsRead } = useNotifications();
   const notificationsRef = useRef<Notification[]>([]);
@@ -179,11 +191,9 @@ export default function DmWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [content, setContent] = useState("");
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
-  const [cachedRoomIds, setCachedRoomIds] = useState<Set<string>>(
-    () => new Set(),
-  );
 
   const sortedRooms = useMemo(() => {
     return [...rooms].sort((left, right) => {
@@ -227,6 +237,7 @@ export default function DmWidget() {
     activeRoom?.lastMessageAt ??
     activeRoom?.messages?.[0]?.createdAt ??
     activeRoom?.createdAt;
+  const activeReceiverId = getRoomPeerId(activeRoom ?? undefined, currentUserId);
 
   useEffect(() => {
     notificationsRef.current = notifications;
@@ -236,6 +247,10 @@ export default function DmWidget() {
   useEffect(() => {
     activeRoomIdRef.current = activeRoomId;
   }, [activeRoomId]);
+
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
 
   const markRoomNotificationsAsRead = useCallback(
     (roomId: string) => {
@@ -284,6 +299,30 @@ export default function DmWidget() {
     );
   }, [currentUserId, joinChatRooms]);
 
+  const emitEnterViewingRoom = useCallback(
+    (roomId: string) => {
+      if (!socketRef.current || !currentUserId) return;
+
+      socketRef.current.emit("enterViewingRoom", {
+        userId: currentUserId,
+        roomId,
+      });
+    },
+    [currentUserId],
+  );
+
+  const emitLeaveViewingRoom = useCallback(
+    (roomId: string) => {
+      if (!socketRef.current || !currentUserId) return;
+
+      socketRef.current.emit("leaveViewingRoom", {
+        userId: currentUserId,
+        roomId,
+      });
+    },
+    [currentUserId],
+  );
+
   const loadMessages = (
     roomId: string,
     cursor?: string | null,
@@ -316,13 +355,7 @@ export default function DmWidget() {
               ),
         );
 
-        setCachedRoomIds((prev) => {
-          if (prev.has(roomId)) return prev;
-
-          const next = new Set(prev);
-          next.add(roomId);
-          return next;
-        });
+        cachedRoomIdsRef.current.add(roomId);
         setNextCursor(response?.nextCursor ?? null);
         setHasNextPage(Boolean(response?.hasNextPage));
         setIsLoadingMessages(false);
@@ -347,7 +380,30 @@ export default function DmWidget() {
     const socket = createChatSocket();
     socketRef.current = socket;
 
-    socket.on("connect", refreshRooms);
+    socket.on("connect", () => {
+      setIsSocketConnected(true);
+      refreshRooms();
+
+      if (activeRoomIdRef.current) {
+        socket.emit("enterViewingRoom", {
+          userId: currentUserId,
+          roomId: activeRoomIdRef.current,
+        });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      setIsSocketConnected(false);
+    });
+
+    socket.on("connect_error", (error) => {
+      setIsSocketConnected(false);
+      console.error("Chat socket connection error", error);
+    });
+
+    socket.on("exception", (error) => {
+      console.error("Chat socket exception", error);
+    });
 
     socket.on("receiveMessage", (message: ChatMessage) => {
       const normalizedMessage = normalizeMessage(message);
@@ -386,23 +442,51 @@ export default function DmWidget() {
         );
       }
 
-      refreshRooms();
+      if (!roomsRef.current.some((room) => room.id === normalizedMessage.roomId)) {
+        refreshRooms();
+      }
     });
 
     return () => {
+      if (activeRoomIdRef.current) {
+        socket.emit("leaveViewingRoom", {
+          userId: currentUserId,
+          roomId: activeRoomIdRef.current,
+        });
+      }
+
       socket.disconnect();
       socketRef.current = null;
+      setIsSocketConnected(false);
     };
   }, [currentUserId, isOpen, refreshRooms]);
+
+  useEffect(() => {
+    if (!isOpen || !activeRoomId || !currentUserId || !socketRef.current) {
+      return;
+    }
+
+    emitEnterViewingRoom(activeRoomId);
+
+    return () => {
+      emitLeaveViewingRoom(activeRoomId);
+    };
+  }, [
+    activeRoomId,
+    currentUserId,
+    emitEnterViewingRoom,
+    emitLeaveViewingRoom,
+    isOpen,
+  ]);
 
   useEffect(() => {
     if (!isOpen || !activeRoomId) return;
 
     loadMessages(activeRoomId, undefined, {
-      silent: cachedRoomIds.has(activeRoomId),
+      silent: cachedRoomIdsRef.current.has(activeRoomId),
     });
     markRoomNotificationsAsRead(activeRoomId);
-  }, [activeRoomId, cachedRoomIds, isOpen, markRoomNotificationsAsRead]);
+  }, [activeRoomId, isOpen, markRoomNotificationsAsRead]);
 
   useEffect(() => {
     if (!hasActiveConversation || activeRoomMessages.length === 0) return;
@@ -437,9 +521,12 @@ export default function DmWidget() {
   };
 
   const handleSend = () => {
+    const socket = socketRef.current;
+
     if (
-      !socketRef.current ||
+      !socket?.connected ||
       !activeRoomId ||
+      !activeReceiverId ||
       !content.trim() ||
       !currentUserId
     ) {
@@ -447,7 +534,7 @@ export default function DmWidget() {
     }
 
     const optimisticMessage: ChatMessage = {
-      id: `optimistic-${Date.now()}`,
+      id: `optimistic-${++optimisticMessageIdRef.current}`,
       roomId: activeRoomId,
       chatRoomId: activeRoomId,
       senderId: currentUserId,
@@ -458,10 +545,11 @@ export default function DmWidget() {
     shouldScrollToBottomRef.current = true;
     setMessages((prev) => mergeMessages(prev, [optimisticMessage], "append"));
 
-    socketRef.current.emit("sendMessage", {
+    socket.emit("sendMessage", {
       roomId: activeRoomId,
       content: content.trim(),
       senderId: currentUserId,
+      receiverId: activeReceiverId,
     });
 
     setContent("");
@@ -826,7 +914,9 @@ export default function DmWidget() {
                   <button
                     type="button"
                     onClick={handleSend}
-                    disabled={!content.trim()}
+                    disabled={
+                      !content.trim() || !activeReceiverId || !isSocketConnected
+                    }
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:bg-muted disabled:text-muted-foreground"
                     aria-label="메시지 보내기"
                   >

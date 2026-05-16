@@ -36,6 +36,15 @@ function getRoomPeer(room: ChatRoom | undefined, currentUserId: string) {
   return room?.users?.find((user) => String(user.id) !== currentUserId);
 }
 
+function getRoomPeerId(room: ChatRoom | undefined, currentUserId: string) {
+  const peer = getRoomPeer(room, currentUserId);
+  if (peer?.id) return String(peer.id);
+
+  return room?.dmKey
+    ?.split(":")
+    .find((userId) => userId && userId !== currentUserId);
+}
+
 function getUserAvatarUrl(user?: User) {
   return user?.avatarUrl || user?.avatar_url || null;
 }
@@ -182,6 +191,8 @@ export default function ChatRoomPage() {
   const socketRef = useRef<Socket | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(true);
+  const chatRoomsRef = useRef<ChatRoom[]>([]);
+  const optimisticMessageIdRef = useRef(0);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [nextMessageCursor, setNextMessageCursor] = useState<string | null>(
@@ -224,10 +235,15 @@ export default function ChatRoomPage() {
     avatar_url: null,
   };
   const headerAvatarUrl = getUserAvatarUrl(headerUser);
+  const selectedReceiverId =
+    getRoomPeerId(selectedRoom, currentUserId) ?? targetUserId;
 
-  const canSend = useMemo(
-    () => Boolean(selectedRoomId && currentUserId && content.trim()),
-    [content, currentUserId, selectedRoomId],
+  const canSend = Boolean(
+    isConnected &&
+      selectedRoomId &&
+      currentUserId &&
+      selectedReceiverId &&
+      content.trim(),
   );
   const canLoadMoreMessages = hasNextMessagePage && roomMessages.length > 0;
 
@@ -239,6 +255,10 @@ export default function ChatRoomPage() {
   useEffect(() => {
     selectedRoomIdRef.current = selectedRoomId;
   }, [selectedRoomId]);
+
+  useEffect(() => {
+    chatRoomsRef.current = chatRooms;
+  }, [chatRooms]);
 
   const markRoomNotificationsAsRead = useCallback(
     (targetRoomId: string) => {
@@ -304,6 +324,30 @@ export default function ChatRoomPage() {
     });
   }, []);
 
+  const emitEnterViewingRoom = useCallback(
+    (targetRoomId: string) => {
+      if (!socketRef.current || !currentUserId) return;
+
+      socketRef.current.emit("enterViewingRoom", {
+        userId: currentUserId,
+        roomId: targetRoomId,
+      });
+    },
+    [currentUserId],
+  );
+
+  const emitLeaveViewingRoom = useCallback(
+    (targetRoomId: string) => {
+      if (!socketRef.current || !currentUserId) return;
+
+      socketRef.current.emit("leaveViewingRoom", {
+        userId: currentUserId,
+        roomId: targetRoomId,
+      });
+    },
+    [currentUserId],
+  );
+
   useEffect(() => {
     if (!currentUserId || !roomId) return;
 
@@ -331,6 +375,13 @@ export default function ChatRoomPage() {
           userIds: [currentUserId, targetUserId],
         });
       }
+
+      if (selectedRoomIdRef.current) {
+        socket.emit("enterViewingRoom", {
+          userId: currentUserId,
+          roomId: selectedRoomIdRef.current,
+        });
+      }
     });
 
     const initialRoomId = selectedRoomIdRef.current;
@@ -356,8 +407,37 @@ export default function ChatRoomPage() {
       setIsConnected(false);
     });
 
+    socket.on("connect_error", (error) => {
+      setIsConnected(false);
+      console.error("Chat socket connection error", error);
+    });
+
+    socket.on("exception", (error) => {
+      console.error("Chat socket exception", error);
+    });
+
     socket.on("receiveMessage", (message: ChatMessage) => {
       const normalizedMessage = normalizeMessage(message);
+
+      setChatRooms((prevRooms) => {
+        const index = prevRooms.findIndex(
+          (room) => room.id === normalizedMessage.roomId,
+        );
+
+        if (index < 0) return prevRooms;
+
+        const nextRooms = [...prevRooms];
+        const room = nextRooms[index];
+
+        nextRooms.splice(index, 1);
+        nextRooms.unshift({
+          ...room,
+          lastMessage: normalizedMessage.content,
+          lastMessageAt: normalizedMessage.createdAt,
+        });
+
+        return nextRooms;
+      });
 
       if (normalizedMessage.roomId === selectedRoomIdRef.current) {
         shouldScrollToBottomRef.current = true;
@@ -373,14 +453,43 @@ export default function ChatRoomPage() {
         );
       }
 
-      refreshRooms();
+      if (
+        !chatRoomsRef.current.some(
+          (room) => room.id === normalizedMessage.roomId,
+        )
+      ) {
+        refreshRooms();
+      }
     });
 
     return () => {
+      if (selectedRoomIdRef.current) {
+        socket.emit("leaveViewingRoom", {
+          userId: currentUserId,
+          roomId: selectedRoomIdRef.current,
+        });
+      }
+
       socket.disconnect();
       socketRef.current = null;
+      setIsConnected(false);
     };
   }, [currentUserId, targetUserId, roomId, joinChatRooms]);
+
+  useEffect(() => {
+    if (!selectedRoomId || !currentUserId || !socketRef.current) return;
+
+    emitEnterViewingRoom(selectedRoomId);
+
+    return () => {
+      emitLeaveViewingRoom(selectedRoomId);
+    };
+  }, [
+    currentUserId,
+    emitEnterViewingRoom,
+    emitLeaveViewingRoom,
+    selectedRoomId,
+  ]);
 
   useEffect(() => {
     if (!socketRef.current || !currentUserId || targetUserId) return;
@@ -419,10 +528,14 @@ export default function ChatRoomPage() {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!socketRef.current || !selectedRoomId || !canSend) return;
+    const socket = socketRef.current;
+
+    if (!socket?.connected || !selectedRoomId || !selectedReceiverId || !canSend) {
+      return;
+    }
 
     const optimisticMessage: ChatMessage = {
-      id: `optimistic-${Date.now()}`,
+      id: `optimistic-${++optimisticMessageIdRef.current}`,
       roomId: selectedRoomId,
       chatRoomId: selectedRoomId,
       senderId: currentUserId,
@@ -435,10 +548,11 @@ export default function ChatRoomPage() {
       mergeMessages(prevMessages, [optimisticMessage], "append"),
     );
 
-    socketRef.current.emit("sendMessage", {
+    socket.emit("sendMessage", {
       roomId: selectedRoomId,
       content: content.trim(),
       senderId: currentUserId,
+      receiverId: selectedReceiverId,
     });
     setContent("");
   };

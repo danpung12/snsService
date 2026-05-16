@@ -10,7 +10,8 @@ import { Server, Socket } from 'socket.io';
 @WebSocketGateway({
   namespace: 'notifications',
   cors: {
-    origin: '*',
+    origin: ['http://localhost:3000', 'https://snsservice.vercel.app'],
+    credentials: true,
   },
 })
 export class NotificationsGateway {

@@ -6,17 +6,23 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { ChatsService } from './chats.service';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Server, Socket } from 'socket.io';
 import { SendMessageDto } from './dto/send-message.dto';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { ChatPaginationDto } from './dto/chat-pagination.dto';
 
-@WebSocketGateway({ namespace: 'chats' })
+@WebSocketGateway({
+  namespace: 'chats',
+  cors: {
+    origin: ['http://localhost:3000', 'https://snsservice.vercel.app'],
+    credentials: true,
+  },
+})
 export class ChatsGateway {
   constructor(private readonly chatsService: ChatsService) {}
 
   @WebSocketServer()
-  server!: Server;
+  server!: Namespace;
 
   @SubscribeMessage('createChat')
   async createChat(
@@ -31,7 +37,11 @@ export class ChatsGateway {
 
   @SubscribeMessage('sendMessage')
   async SendMessage(@MessageBody() data: SendMessageDto) {
-    const message = await this.chatsService.createMessage(data);
+    const isViewingRoom = await this.isViewingRoom(
+      data.receiverId,
+      data.roomId,
+    );
+    const message = await this.chatsService.createMessage(data, isViewingRoom);
 
     this.server.to(data.roomId).emit('receiveMessage', message);
   }
@@ -44,6 +54,34 @@ export class ChatsGateway {
   @SubscribeMessage('getMessages')
   async getMessage(@MessageBody() data: ChatPaginationDto) {
     return this.chatsService.getMessages(data);
+  }
+
+  private viewingRoomName(userId: string, roomId: string) {
+    return `active-chat:${userId}:${roomId}`;
+  }
+
+  private isViewingRoom(userId: string, roomId: string) {
+    const roomName = this.viewingRoomName(userId, roomId);
+
+    return (this.server.adapter.rooms.get(roomName)?.size ?? 0) > 0;
+  }
+
+  @SubscribeMessage('enterViewingRoom')
+  enterViewingRoom(
+    @MessageBody() data: { userId: string; roomId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const roomName = this.viewingRoomName(data.userId, data.roomId);
+    client.join(roomName);
+  }
+
+  @SubscribeMessage('leaveViewingRoom')
+  leaveViewingRoom(
+    @MessageBody() data: { userId: string; roomId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const roomName = this.viewingRoomName(data.userId, data.roomId);
+    client.leave(roomName);
   }
 
   // @SubscribeMessage('joinRoom')
