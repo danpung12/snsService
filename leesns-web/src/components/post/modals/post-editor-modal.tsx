@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -25,11 +25,6 @@ import { ImageIcon, XIcon } from "lucide-react";
 import { useCreatePost } from "@/hooks/use-create-post";
 import { useUpdatePost } from "@/hooks/use-update-post";
 
-type SelectedImage = {
-  file: File;
-  previewUrl: string;
-};
-
 function PostEditorForm({
   initialContent,
   initialImageUrls,
@@ -44,14 +39,14 @@ function PostEditorForm({
   close: () => void;
 }) {
   const [content, setContent] = useState(initialContent);
-  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>(initialImageUrls ?? []);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: createPost, isPending: isCreatePending } = useCreatePost({
     onSuccess: () => {
       setContent("");
-      setSelectedImages([]);
+      setImageUrls([]);
       close();
       toast.success("게시글을 작성했습니다.");
     },
@@ -61,73 +56,53 @@ function PostEditorForm({
   const { mutate: updatePost, isPending: isUpdatePending } = useUpdatePost({
     onSuccess: () => {
       setContent("");
+      setImageUrls([]);
       close();
       toast.success("게시글을 수정했습니다.");
     },
     onError: () => toast.error("게시글 수정에 실패했습니다."),
   });
 
-  useEffect(() => {
-    return () => {
-      selectedImages.forEach((image) => {
-        URL.revokeObjectURL(image.previewUrl);
-      });
-    };
-  }, [selectedImages]);
-
-  const handleSelectImages = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleSelectImages = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
 
-    setSelectedImages((prevImages) => {
-      const nextImages = [
-        ...prevImages,
-        ...files.map((file) => ({
-          file,
-          previewUrl: URL.createObjectURL(file),
-        })),
-      ];
-
-      return nextImages.slice(0, 4);
-    });
     event.target.value = "";
+
+    const selectableFiles = files.slice(0, Math.max(4 - imageUrls.length, 0));
+    if (selectableFiles.length === 0) return;
+
+    try {
+      setIsUploading(true);
+      const uploadedImageUrls = await uploadPostImages(selectableFiles);
+      setImageUrls((prevImages) =>
+        [...prevImages, ...uploadedImageUrls].slice(0, 4),
+      );
+    } catch {
+      toast.error("이미지 업로드에 실패했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const handleDeleteSelectedImage = (previewUrl: string) => {
-    setSelectedImages((prevImages) => {
-      const target = prevImages.find((image) => image.previewUrl === previewUrl);
-      if (target) {
-        URL.revokeObjectURL(target.previewUrl);
-      }
-
-      return prevImages.filter((image) => image.previewUrl !== previewUrl);
-    });
+  const handleDeleteImage = (targetIndex: number) => {
+    setImageUrls((prevImages) =>
+      prevImages.filter((_, index) => index !== targetIndex),
+    );
   };
 
   const handleSave = async () => {
     if (!content.trim()) return;
 
     if (isEditMode && postId) {
-      updatePost({ id: postId, content });
+      updatePost({ id: postId, content, images: imageUrls });
       return;
     }
 
-    try {
-      setIsUploading(true);
-      const uploadedFilenames =
-        selectedImages.length > 0
-          ? await uploadPostImages(selectedImages.map((image) => image.file))
-          : undefined;
-
-      createPost({
-        content,
-        ...(uploadedFilenames ? { images: uploadedFilenames } : {}),
-      });
-    } catch {
-      toast.error("이미지 업로드에 실패했습니다.");
-    } finally {
-      setIsUploading(false);
-    }
+    createPost({
+      content,
+      ...(imageUrls.length > 0 ? { images: imageUrls } : {}),
+    });
   };
 
   const isPending = isCreatePending || isUpdatePending || isUploading;
@@ -151,31 +126,29 @@ function PostEditorForm({
           disabled={isPending}
         />
 
-        {!isEditMode && (
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleSelectImages}
-          />
-        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleSelectImages}
+        />
 
-        {selectedImages.length > 0 ? (
+        {imageUrls.length > 0 && (
           <Carousel>
             <CarouselContent>
-              {selectedImages.map((image) => (
-                <CarouselItem className="basis-3/5" key={image.previewUrl}>
+              {imageUrls.map((url, index) => (
+                <CarouselItem className="basis-3/5" key={`${url}-${index}`}>
                   <div className="relative aspect-[4/3] max-h-48 overflow-hidden rounded-lg border bg-muted">
                     <img
-                      src={image.previewUrl}
+                      src={toBackendImageUrl(url)}
                       className="h-full w-full object-cover"
                       alt="선택한 게시글 이미지"
                     />
                     <button
                       type="button"
-                      onClick={() => handleDeleteSelectedImage(image.previewUrl)}
+                      onClick={() => handleDeleteImage(index)}
                       className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white"
                       aria-label="선택한 이미지 삭제"
                     >
@@ -186,44 +159,20 @@ function PostEditorForm({
               ))}
             </CarouselContent>
           </Carousel>
-        ) : (
-          isEditMode &&
-          initialImageUrls &&
-          initialImageUrls.length > 0 && (
-            <Carousel>
-              <CarouselContent>
-                {initialImageUrls.map((url) => (
-                  <CarouselItem className="basis-3/5" key={url}>
-                    <div className="aspect-[4/3] max-h-48 overflow-hidden rounded-lg border bg-muted">
-                      <img
-                        src={toBackendImageUrl(url)}
-                        className="h-full w-full object-cover"
-                        alt="기존 게시글 이미지"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-          )
         )}
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        {!isEditMode ? (
-          <Button
-            type="button"
-            variant={"outline"}
-            className="cursor-pointer"
-            disabled={isPending || selectedImages.length >= 4}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImageIcon className="mr-2 h-4 w-4" />
-            이미지 추가
-          </Button>
-        ) : (
-          <div />
-        )}
+        <Button
+          type="button"
+          variant={"outline"}
+          className="cursor-pointer"
+          disabled={isPending || imageUrls.length >= 4}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <ImageIcon className="mr-2 h-4 w-4" />
+          이미지 추가
+        </Button>
 
         <Button
           className="cursor-pointer px-8"

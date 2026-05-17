@@ -1,5 +1,5 @@
 import { QUERY_KEYS } from "@/lib/query-keys";
-import { updatePost } from "@/service/post";
+import { updatePost, type UpdatePostPayload } from "@/service/post";
 import type { Post, UseMutationCallback } from "@/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -7,8 +7,7 @@ export function useUpdatePost(callbacks?: UseMutationCallback) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, content }: { id: number; content: string }) =>
-      updatePost({ id, content }),
+    mutationFn: (payload: UpdatePostPayload) => updatePost(payload),
     onSuccess: (updatedPost) => {
       queryClient.setQueryData<Post>(
         QUERY_KEYS.post.byId(updatedPost.id),

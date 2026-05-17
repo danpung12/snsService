@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Post,
   UploadedFile,
@@ -26,5 +27,10 @@ export class UploadsController {
     return {
       filename: file.filename,
     };
+  }
+
+  @Post('presigned-url')
+  createPresignedUrl(@Body() body: { filename: string; contentType: string }) {
+    return this.uploadsService.createPresignedUrl(body.filename, body.contentType);
   }
 }

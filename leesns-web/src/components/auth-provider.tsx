@@ -1,8 +1,10 @@
 "use client";
 
-import { useAuthStore } from "@/store/auth";
 import api from "@/lib/api";
+import { API_URL } from "@/lib/api_url";
 import { showAuthErrorPopup } from "@/lib/auth-error";
+import { useAuthStore } from "@/store/auth";
+import axios from "axios";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -24,27 +26,27 @@ export default function AuthProvider({
     let ignore = false;
 
     const restoreAuth = async () => {
-      if (isPublicPath) {
-        if (!ignore) {
-          setLoad(true);
-        }
-        return;
-      }
-
       try {
-        const response = await api.get("/users/me");
+        const response = isPublicPath
+          ? await axios.get(`${API_URL}/users/me`, { withCredentials: true })
+          : await api.get("/users/me");
 
         if (ignore) return;
 
         setLogin(response.data.id, response.data.nickname);
+
+        if (isPublicPath) {
+          router.replace("/");
+        }
       } catch (error) {
         if (ignore) return;
 
-        // 임시 디버그용: 인증 복구 실패 원인을 모달로 표시
-        showAuthErrorPopup(error);
-
         setLogout();
-        router.replace("/login");
+
+        if (!isPublicPath) {
+          showAuthErrorPopup(error);
+          router.replace("/login");
+        }
       } finally {
         if (!ignore) {
           setLoad(true);
@@ -59,6 +61,7 @@ export default function AuthProvider({
     };
   }, [isPublicPath, router, setLoad, setLogin, setLogout]);
 
+  if (isPublicPath && isLoggedIn) return null;
   if (isPublicPath) return <>{children}</>;
   if (!isLoad) return null;
   if (!isLoggedIn) return null;

@@ -48,7 +48,10 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        if (typeof window !== "undefined") {
+        if (
+          typeof window !== "undefined" &&
+          !["/login", "/signup"].includes(window.location.pathname)
+        ) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);

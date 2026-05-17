@@ -18,31 +18,13 @@ export class PostsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  private ImagePath(image: string | null) {
-    return image ? `/${process.env.POST_IMAGE_PATH}/${image}` : null;
-  }
-
-  private async movePostImage(image: string | null) {
-    if (!image) {
-      return null;
-    }
-
-    await promises.rename(
-      join(process.cwd(), process.env.POST_TEMP_IAMGE_PATH!, image),
-      join(process.cwd(), process.env.POST_IMAGE_PATH!, image),
-    );
-  }
-
   private formatPost(post) {
     return {
       ...post,
       // 좋아요
-      isLiked: post.likes.length > 0,
+      isLiked: post.likes?.length > 0,
       // 이미지 파싱
-      images: post.images.map((image) => ({
-        ...image,
-        url: this.ImagePath(image.url),
-      })),
+      images: post.images ?? [],
     };
   }
 
@@ -114,15 +96,13 @@ export class PostsService {
   async createPost(userid: string, postDto: CreatePostDto) {
     const { images = [], ...postData } = postDto;
 
-    await Promise.all(images.map((image) => this.movePostImage(image)));
-
     const post = await this.prisma.post.create({
       data: {
         authorId: userid,
         ...postData,
         images: {
-          create: images.map((image, index) => ({
-            url: image,
+          create: images.map((url, index) => ({
+            url,
             order: index,
           })),
         },
@@ -139,13 +119,7 @@ export class PostsService {
       },
     });
 
-    return {
-      ...post,
-      images: post.images.map((image) => ({
-        ...image,
-        url: this.ImagePath(image.url),
-      })),
-    };
+    return this.formatPost(post);
   }
 
   async updatePost(id: number, postDto: updatePostDto) {
@@ -153,13 +127,20 @@ export class PostsService {
 
     const { images, ...postData } = postDto;
 
-    if (images) {
-      await Promise.all(images.map((image) => this.movePostImage(image)));
-    }
-
     const post = await this.prisma.post.update({
       where: { id },
-      data: postData,
+      data: {
+        ...postData,
+        ...(images && {
+          images: {
+            deleteMany: {},
+            create: images.map((url, index) => ({
+              url,
+              order: index,
+            })),
+          },
+        }),
+      },
       include: {
         author: {
           select: {
@@ -172,13 +153,7 @@ export class PostsService {
         },
       },
     });
-    return {
-      ...post,
-      images: post.images.map((image) => ({
-        ...image,
-        url: this.ImagePath(image.url),
-      })),
-    };
+    return this.formatPost(post);
   }
 
   async deletePost(id: number) {

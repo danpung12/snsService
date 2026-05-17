@@ -6,6 +6,12 @@ export interface CreatePostPayload {
   images?: string[];
 }
 
+export interface UpdatePostPayload {
+  id: number;
+  content: string;
+  images: string[];
+}
+
 export async function fetchPosts({
   cursor = 0,
   take = 5,
@@ -48,10 +54,10 @@ export async function createPost(payload: CreatePostPayload) {
   return response.data;
 }
 
-export async function updatePost(payload: { id: number; content: string }) {
-  const { id, content } = payload;
+export async function updatePost(payload: UpdatePostPayload) {
+  const { id, content, images } = payload;
 
-  const response = await api.patch<Post>(`/posts/${id}`, { content });
+  const response = await api.patch<Post>(`/posts/${id}`, { content, images });
 
   return response.data;
 }

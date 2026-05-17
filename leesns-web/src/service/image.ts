@@ -1,22 +1,40 @@
 import api from "@/lib/api";
 
-export async function uploadPostImages(files: File[]) {
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("images", file);
-  });
+type PresignedUrlResponse = {
+  uploadUrl: string;
+  fileUrl: string;
+};
 
-  const response = await api.post<{ filenames: string[] }>(
-    "/uploads/post-image",
-    formData,
+async function uploadImageWithPresignedUrl(file: File) {
+  const response = await api.post<PresignedUrlResponse>(
+    "/uploads/presigned-url",
     {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      fileName: file.name,
+      contentType: file.type,
+      filename: file.name,
+      content: file.type,
     },
   );
 
-  return response.data.filenames;
+  const { uploadUrl, fileUrl } = response.data;
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type,
+    },
+    body: file,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Failed to upload image");
+  }
+
+  return fileUrl;
+}
+
+export async function uploadPostImages(files: File[]) {
+  return Promise.all(files.map(uploadImageWithPresignedUrl));
 }
 
 export async function uploadProfileImage(file: File) {
