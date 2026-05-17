@@ -5,7 +5,7 @@ type PresignedUrlResponse = {
   fileUrl: string;
 };
 
-async function uploadImageWithPresignedUrl(file: File) {
+export async function uploadImageWithPresignedUrl(file: File) {
   const response = await api.post<PresignedUrlResponse>(
     "/uploads/presigned-url",
     {

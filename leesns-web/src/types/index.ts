@@ -92,7 +92,8 @@ export interface ChatMessage {
   id?: string;
   roomId: string;
   chatRoomId?: string;
-  content: string;
+  content?: string | null;
+  imageUrl?: string | null;
   senderId: string;
   sender?: User;
   createdAt: string;

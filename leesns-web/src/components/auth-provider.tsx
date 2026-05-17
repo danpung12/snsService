@@ -1,10 +1,8 @@
 "use client";
 
 import api from "@/lib/api";
-import { API_URL } from "@/lib/api_url";
 import { showAuthErrorPopup } from "@/lib/auth-error";
 import { useAuthStore } from "@/store/auth";
-import axios from "axios";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -26,27 +24,30 @@ export default function AuthProvider({
     let ignore = false;
 
     const restoreAuth = async () => {
+      if (isPublicPath) {
+        if (isLoggedIn) {
+          router.replace("/");
+        }
+
+        if (!ignore) {
+          setLoad(true);
+        }
+
+        return;
+      }
+
       try {
-        const response = isPublicPath
-          ? await axios.get(`${API_URL}/users/me`, { withCredentials: true })
-          : await api.get("/users/me");
+        const response = await api.get("/users/me");
 
         if (ignore) return;
 
         setLogin(response.data.id, response.data.nickname);
-
-        if (isPublicPath) {
-          router.replace("/");
-        }
       } catch (error) {
         if (ignore) return;
 
         setLogout();
-
-        if (!isPublicPath) {
-          showAuthErrorPopup(error);
-          router.replace("/login");
-        }
+        showAuthErrorPopup(error);
+        router.replace("/login");
       } finally {
         if (!ignore) {
           setLoad(true);
@@ -59,7 +60,7 @@ export default function AuthProvider({
     return () => {
       ignore = true;
     };
-  }, [isPublicPath, router, setLoad, setLogin, setLogout]);
+  }, [isLoggedIn, isPublicPath, router, setLoad, setLogin, setLogout]);
 
   if (isPublicPath && isLoggedIn) return null;
   if (isPublicPath) return <>{children}</>;

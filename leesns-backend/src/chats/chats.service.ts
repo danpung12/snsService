@@ -48,8 +48,10 @@ export class ChatsService {
     const message = await this.prisma.message.create({
       data: {
         content: data.content,
+        imageUrl: data.imageUrl,
         chatRoomId: data.roomId,
         senderId: data.senderId,
+        
       },
       // 흠 메세지 전송할때는 그 직후 랜더링에 sender 정보 안 필요한데.. 일단 혹시모르니까 넣어놓음.
       include: {

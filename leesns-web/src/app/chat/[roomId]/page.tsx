@@ -1,12 +1,14 @@
 "use client";
 
 import defaultAvatar from "@/assets/default-avatar.png";
+import defaultPostImage from "@/assets/default-post-image.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNotifications } from "@/hooks/use-notifications";
 import { createChatSocket } from "@/lib/chat-socket";
 import { toBackendImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
+import { uploadImageWithPresignedUrl } from "@/service/image";
 import { useUserId } from "@/store/auth";
 import type {
   ChatMessage,
@@ -15,12 +17,13 @@ import type {
   Notification,
   User,
 } from "@/types";
-import { MessageCircle, Search, SendHorizonal, X } from "lucide-react";
+import { ImageIcon, MessageCircle, Search, SendHorizonal, X } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   FormEvent,
   Fragment,
   MouseEventHandler,
+  type ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -119,6 +122,7 @@ function normalizeMessage(message: ChatMessage): ChatMessage {
   return {
     ...message,
     roomId: message.roomId ?? message.chatRoomId ?? "",
+    content: message.content ?? "",
     createdAt: message.createdAt ?? new Date().toISOString(),
   };
 }
@@ -126,7 +130,7 @@ function normalizeMessage(message: ChatMessage): ChatMessage {
 function getMessageKey(message: ChatMessage) {
   return (
     message.id ??
-    `${message.roomId}-${message.senderId}-${message.createdAt}-${message.content}`
+    `${message.roomId}-${message.senderId}-${message.createdAt}-${message.content ?? ""}-${message.imageUrl ?? ""}`
   );
 }
 
@@ -159,7 +163,23 @@ function isMatchingOptimisticMessage(
     currentMessage.id?.startsWith("optimistic-") &&
     currentMessage.roomId === serverMessage.roomId &&
     currentMessage.senderId === serverMessage.senderId &&
-    currentMessage.content === serverMessage.content
+    currentMessage.content === serverMessage.content &&
+    currentMessage.imageUrl === serverMessage.imageUrl
+  );
+}
+
+function SafeMessageImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="aspect-[4/3] w-80 max-w-full overflow-hidden rounded-2xl bg-muted">
+      <img
+        src={toBackendImageUrl(src)}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={(event) => {
+          event.currentTarget.src = defaultPostImage.src;
+        }}
+      />
+    </div>
   );
 }
 
@@ -190,6 +210,8 @@ export default function ChatRoomPage() {
   const targetNickname = searchParams.get("targetNickname") ?? "상대";
   const socketRef = useRef<Socket | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const imageUploadIdRef = useRef(0);
   const shouldScrollToBottomRef = useRef(true);
   const chatRoomsRef = useRef<ChatRoom[]>([]);
   const optimisticMessageIdRef = useRef(0);
@@ -201,6 +223,9 @@ export default function ChatRoomPage() {
   const [hasNextMessagePage, setHasNextMessagePage] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [content, setContent] = useState("");
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState(roomId);
 
@@ -243,7 +268,8 @@ export default function ChatRoomPage() {
       selectedRoomId &&
       currentUserId &&
       selectedReceiverId &&
-      content.trim(),
+      (content.trim() || selectedImageUrl) &&
+      !isUploadingImage,
   );
   const canLoadMoreMessages = hasNextMessagePage && roomMessages.length > 0;
 
@@ -259,6 +285,14 @@ export default function ChatRoomPage() {
   useEffect(() => {
     chatRoomsRef.current = chatRooms;
   }, [chatRooms]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+    };
+  }, [selectedImagePreviewUrl]);
 
   const markRoomNotificationsAsRead = useCallback(
     (targetRoomId: string) => {
@@ -432,7 +466,7 @@ export default function ChatRoomPage() {
         nextRooms.splice(index, 1);
         nextRooms.unshift({
           ...room,
-          lastMessage: normalizedMessage.content,
+          lastMessage: normalizedMessage.content || (normalizedMessage.imageUrl ? "사진" : ""),
           lastMessageAt: normalizedMessage.createdAt,
         });
 
@@ -523,12 +557,53 @@ export default function ChatRoomPage() {
 
   const openRoom = (targetRoomId: string) => {
     setSelectedRoomId(targetRoomId);
+    clearSelectedImage();
     markRoomNotificationsAsRead(targetRoomId);
+  };
+
+  const clearSelectedImage = () => {
+    imageUploadIdRef.current += 1;
+    setSelectedImageUrl(null);
+    setSelectedImagePreviewUrl(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  const handleSelectImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadId = ++imageUploadIdRef.current;
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImagePreviewUrl(previewUrl);
+    setSelectedImageUrl(null);
+
+    try {
+      setIsUploadingImage(true);
+      const uploadedImageUrl = await uploadImageWithPresignedUrl(file);
+      if (imageUploadIdRef.current === uploadId) {
+        setSelectedImageUrl(uploadedImageUrl);
+      }
+    } catch {
+      if (imageUploadIdRef.current === uploadId) {
+        setSelectedImageUrl(null);
+        setSelectedImagePreviewUrl(null);
+        if (imageInputRef.current) {
+          imageInputRef.current.value = "";
+        }
+      }
+    } finally {
+      if (imageUploadIdRef.current === uploadId) {
+        setIsUploadingImage(false);
+      }
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const socket = socketRef.current;
+    const trimmedContent = content.trim();
 
     if (!socket?.connected || !selectedRoomId || !selectedReceiverId || !canSend) {
       return;
@@ -539,7 +614,8 @@ export default function ChatRoomPage() {
       roomId: selectedRoomId,
       chatRoomId: selectedRoomId,
       senderId: currentUserId,
-      content: content.trim(),
+      content: trimmedContent,
+      imageUrl: selectedImageUrl,
       createdAt: new Date().toISOString(),
     };
 
@@ -550,11 +626,13 @@ export default function ChatRoomPage() {
 
     socket.emit("sendMessage", {
       roomId: selectedRoomId,
-      content: content.trim(),
+      content: trimmedContent,
+      imageUrl: selectedImageUrl,
       senderId: currentUserId,
       receiverId: selectedReceiverId,
     });
     setContent("");
+    clearSelectedImage();
   };
 
   const handleLoadMoreMessages = () => {
@@ -738,6 +816,8 @@ export default function ChatRoomPage() {
               );
               const senderProfileId =
                 message.sender?.id ?? selectedPeer?.id ?? headerUser.id;
+              const isImageOnlyMessage =
+                Boolean(message.imageUrl) && !message.content;
 
               return (
                 <Fragment key={message.id ?? `${message.createdAt}-${index}`}>
@@ -775,14 +855,48 @@ export default function ChatRoomPage() {
                         <div className="text-xs text-muted-foreground">
                           {formatMessageTime(message.createdAt)}
                         </div>
-                        <div className="max-w-[68%] rounded-2xl rounded-br-md bg-primary px-4 py-2 text-sm leading-6 text-primary-foreground">
-                          {message.content}
+                        <div
+                          className={cn(
+                            "flex max-w-[68%] flex-col overflow-hidden text-sm leading-6 text-primary-foreground",
+                            isImageOnlyMessage
+                              ? "rounded-2xl rounded-br-md bg-transparent p-0"
+                              : "gap-2 rounded-2xl rounded-br-md bg-primary px-4 py-2",
+                          )}
+                        >
+                          {message.imageUrl && (
+                            <SafeMessageImage
+                              src={message.imageUrl}
+                              alt="채팅 이미지"
+                            />
+                          )}
+                          {message.content && (
+                            <div className="break-words whitespace-pre-wrap">
+                              {message.content}
+                            </div>
+                          )}
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="max-w-[68%] rounded-2xl rounded-bl-md bg-muted px-4 py-2 text-sm leading-6 text-foreground">
-                          {message.content}
+                        <div
+                          className={cn(
+                            "flex max-w-[68%] flex-col overflow-hidden text-sm leading-6 text-foreground",
+                            isImageOnlyMessage
+                              ? "rounded-2xl rounded-bl-md bg-transparent p-0"
+                              : "gap-2 rounded-2xl rounded-bl-md bg-muted px-4 py-2",
+                          )}
+                        >
+                          {message.imageUrl && (
+                            <SafeMessageImage
+                              src={message.imageUrl}
+                              alt="채팅 이미지"
+                            />
+                          )}
+                          {message.content && (
+                            <div className="break-words whitespace-pre-wrap">
+                              {message.content}
+                            </div>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {formatMessageTime(message.createdAt)}
@@ -796,22 +910,71 @@ export default function ChatRoomPage() {
           )}
         </div>
 
-        <form className="flex shrink-0 gap-2 border-t p-4" onSubmit={handleSubmit}>
-          <Input
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            placeholder="메시지를 입력하세요"
-            disabled={!currentUserId}
-            className="h-11 rounded-full px-4"
-          />
-          <Button
-            type="submit"
-            disabled={!canSend}
-            className="h-11 rounded-full px-4"
-          >
-            <SendHorizonal className="h-4 w-4" />
-            보내기
-          </Button>
+        <form className="flex shrink-0 flex-col gap-2 border-t p-4" onSubmit={handleSubmit}>
+          {(selectedImagePreviewUrl || selectedImageUrl) && (
+            <div className="flex items-center gap-2 rounded-xl border bg-muted/40 p-2">
+              <div className="relative h-20 w-20 overflow-hidden rounded-lg border bg-background">
+                <img
+                  src={selectedImagePreviewUrl ?? selectedImageUrl ?? ""}
+                  alt="Attached image preview"
+                  className="h-full w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src = defaultPostImage.src;
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={clearSelectedImage}
+                  className="absolute right-1 top-1 rounded-full bg-black/55 p-0.5 text-white"
+                  aria-label="Remove attached image"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="min-w-0 text-sm text-muted-foreground">
+                {isUploadingImage ? "Uploading image..." : "Image attached"}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleSelectImage}
+            />
+
+            <Input
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="Message..."
+              disabled={!currentUserId || isUploadingImage}
+              className="h-11 rounded-full px-4"
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              disabled={!currentUserId || isUploadingImage}
+              className="h-11 w-11 shrink-0 rounded-full"
+              onClick={() => imageInputRef.current?.click()}
+              aria-label="Attach image"
+            >
+              <ImageIcon className="h-5 w-5" />
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={!canSend}
+              className="h-11 rounded-full px-4"
+            >
+              <SendHorizonal className="h-4 w-4" />
+              Send
+            </Button>
+          </div>
         </form>
       </section>
     </main>

@@ -3,12 +3,14 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import defaultAvatar from "@/assets/default-avatar.png";
+import defaultPostImage from "@/assets/default-post-image.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNotifications } from "@/hooks/use-notifications";
 import { createChatSocket } from "@/lib/chat-socket";
 import { toBackendImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
+import { uploadImageWithPresignedUrl } from "@/service/image";
 import { useUserId } from "@/store/auth";
 import type {
   ChatMessage,
@@ -17,9 +19,9 @@ import type {
   Notification,
   User,
 } from "@/types";
-import { ArrowLeft, Maximize2, MessageCircle, Send, SendHorizonal, X } from "lucide-react";
+import { ArrowLeft, ImageIcon, Maximize2, MessageCircle, Send, SendHorizonal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { Socket } from "socket.io-client";
 
 const MESSAGE_PAGE_SIZE = 20;
@@ -93,6 +95,7 @@ function normalizeMessage(message: ChatMessage): ChatMessage {
   return {
     ...message,
     roomId: message.roomId ?? message.chatRoomId ?? "",
+    content: message.content ?? "",
     createdAt: message.createdAt ?? new Date().toISOString(),
   };
 }
@@ -100,7 +103,7 @@ function normalizeMessage(message: ChatMessage): ChatMessage {
 function getMessageKey(message: ChatMessage) {
   return (
     message.id ??
-    `${message.roomId}-${message.senderId}-${message.createdAt}-${message.content}`
+    `${message.roomId}-${message.senderId}-${message.createdAt}-${message.content ?? ""}-${message.imageUrl ?? ""}`
   );
 }
 
@@ -132,7 +135,23 @@ function isMatchingOptimisticMessage(
     currentMessage.id?.startsWith("optimistic-") &&
     currentMessage.roomId === serverMessage.roomId &&
     currentMessage.senderId === serverMessage.senderId &&
-    currentMessage.content === serverMessage.content
+    currentMessage.content === serverMessage.content &&
+    currentMessage.imageUrl === serverMessage.imageUrl
+  );
+}
+
+function SafeMessageImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div className="aspect-[4/3] w-56 max-w-full overflow-hidden rounded-2xl bg-muted">
+      <img
+        src={toBackendImageUrl(src)}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={(event) => {
+          event.currentTarget.src = defaultPostImage.src;
+        }}
+      />
+    </div>
   );
 }
 
@@ -159,6 +178,8 @@ export default function DmWidget() {
   const currentUserId = useUserId();
   const socketRef = useRef<Socket | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const imageUploadIdRef = useRef(0);
   const shouldScrollToBottomRef = useRef(true);
   const activeRoomIdRef = useRef<string | null>(null);
   const cachedRoomIdsRef = useRef<Set<string>>(new Set());
@@ -190,6 +211,9 @@ export default function DmWidget() {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [content, setContent] = useState("");
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -238,6 +262,20 @@ export default function DmWidget() {
     activeRoom?.messages?.[0]?.createdAt ??
     activeRoom?.createdAt;
   const activeReceiverId = getRoomPeerId(activeRoom ?? undefined, currentUserId);
+  const canSendMessage = Boolean(
+    (content.trim() || selectedImageUrl) &&
+      activeReceiverId &&
+      isSocketConnected &&
+      !isUploadingImage,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+    };
+  }, [selectedImagePreviewUrl]);
 
   useEffect(() => {
     notificationsRef.current = notifications;
@@ -420,7 +458,7 @@ export default function DmWidget() {
           updated.splice(index, 1);
           updated.unshift({
             ...room,
-            lastMessage: normalizedMessage.content,
+            lastMessage: normalizedMessage.content || (normalizedMessage.imageUrl ? "사진" : ""),
             lastMessageAt: normalizedMessage.createdAt,
           });
         }
@@ -510,6 +548,8 @@ export default function DmWidget() {
     if (!isOpen) {
       setActiveRoomId(null);
       setContent("");
+      setSelectedImageUrl(null);
+      setSelectedImagePreviewUrl(null);
       setNextCursor(null);
       setHasNextPage(false);
     }
@@ -517,17 +557,59 @@ export default function DmWidget() {
 
   const openRoom = (roomId: string) => {
     setActiveRoomId(roomId);
+    clearSelectedImage();
     markRoomNotificationsAsRead(roomId);
+  };
+
+  const clearSelectedImage = () => {
+    imageUploadIdRef.current += 1;
+    setSelectedImageUrl(null);
+    setSelectedImagePreviewUrl(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  const handleSelectImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadId = ++imageUploadIdRef.current;
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImagePreviewUrl(previewUrl);
+    setSelectedImageUrl(null);
+
+    try {
+      setIsUploadingImage(true);
+      const uploadedImageUrl = await uploadImageWithPresignedUrl(file);
+      if (imageUploadIdRef.current === uploadId) {
+        setSelectedImageUrl(uploadedImageUrl);
+      }
+    } catch {
+      if (imageUploadIdRef.current === uploadId) {
+        setSelectedImageUrl(null);
+        setSelectedImagePreviewUrl(null);
+        if (imageInputRef.current) {
+          imageInputRef.current.value = "";
+        }
+      }
+    } finally {
+      if (imageUploadIdRef.current === uploadId) {
+        setIsUploadingImage(false);
+      }
+    }
   };
 
   const handleSend = () => {
     const socket = socketRef.current;
+    const trimmedContent = content.trim();
 
     if (
       !socket?.connected ||
       !activeRoomId ||
       !activeReceiverId ||
-      !content.trim() ||
+      (!trimmedContent && !selectedImageUrl) ||
+      isUploadingImage ||
       !currentUserId
     ) {
       return;
@@ -538,7 +620,8 @@ export default function DmWidget() {
       roomId: activeRoomId,
       chatRoomId: activeRoomId,
       senderId: currentUserId,
-      content: content.trim(),
+      content: trimmedContent,
+      imageUrl: selectedImageUrl,
       createdAt: new Date().toISOString(),
     };
 
@@ -547,12 +630,14 @@ export default function DmWidget() {
 
     socket.emit("sendMessage", {
       roomId: activeRoomId,
-      content: content.trim(),
+      content: trimmedContent,
+      imageUrl: selectedImageUrl,
       senderId: currentUserId,
       receiverId: activeReceiverId,
     });
 
     setContent("");
+    clearSelectedImage();
   };
 
   const closeDetail = () => {
@@ -560,6 +645,7 @@ export default function DmWidget() {
     setNextCursor(null);
     setHasNextPage(false);
     setContent("");
+    clearSelectedImage();
   };
 
   const openActiveRoomFullChat = () => {
@@ -827,6 +913,8 @@ export default function DmWidget() {
                     );
                     const senderProfileId =
                       message.sender?.id ?? activePeer?.id ?? null;
+                    const isImageOnlyMessage =
+                      Boolean(message.imageUrl) && !message.content;
 
                     return (
                       <Fragment key={message.id ?? `${message.createdAt}-${index}`}>
@@ -874,14 +962,48 @@ export default function DmWidget() {
                                 {formatMessageTime(message.createdAt)}
                               </div>
 
-                              <div className="max-w-[72%] rounded-2xl rounded-br-md bg-primary px-3 py-2 text-sm leading-6 text-primary-foreground">
-                                {message.content}
+                              <div
+                                className={cn(
+                                  "flex max-w-[72%] flex-col overflow-hidden text-sm leading-6 text-primary-foreground",
+                                  isImageOnlyMessage
+                                    ? "rounded-2xl rounded-br-md bg-transparent p-0"
+                                    : "gap-2 rounded-2xl rounded-br-md bg-primary px-3 py-2",
+                                )}
+                              >
+                                {message.imageUrl && (
+                                  <SafeMessageImage
+                                    src={message.imageUrl}
+                                    alt="채팅 이미지"
+                                  />
+                                )}
+                                {message.content && (
+                                  <div className="break-words whitespace-pre-wrap">
+                                    {message.content}
+                                  </div>
+                                )}
                               </div>
                             </>
                           ) : (
                             <>
-                              <div className="max-w-[72%] rounded-2xl rounded-bl-md bg-muted px-3 py-2 text-sm leading-6 text-foreground">
-                                {message.content}
+                              <div
+                                className={cn(
+                                  "flex max-w-[72%] flex-col overflow-hidden text-sm leading-6 text-foreground",
+                                  isImageOnlyMessage
+                                    ? "rounded-2xl rounded-bl-md bg-transparent p-0"
+                                    : "gap-2 rounded-2xl rounded-bl-md bg-muted px-3 py-2",
+                                )}
+                              >
+                                {message.imageUrl && (
+                                  <SafeMessageImage
+                                    src={message.imageUrl}
+                                    alt="채팅 이미지"
+                                  />
+                                )}
+                                {message.content && (
+                                  <div className="break-words whitespace-pre-wrap">
+                                    {message.content}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="text-[11px] text-muted-foreground">
@@ -897,11 +1019,45 @@ export default function DmWidget() {
               </div>
 
               <div className="shrink-0 border-t p-3">
+                {(selectedImagePreviewUrl || selectedImageUrl) && (
+                  <div className="mb-2 flex items-center gap-2 rounded-xl border bg-muted/40 p-2">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-lg border bg-background">
+                      <img
+                        src={selectedImagePreviewUrl ?? selectedImageUrl ?? ""}
+                        alt="Attached image preview"
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src = defaultPostImage.src;
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={clearSelectedImage}
+                        className="absolute right-1 top-1 rounded-full bg-black/55 p-0.5 text-white"
+                        aria-label="Remove attached image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="min-w-0 text-xs text-muted-foreground">
+                      {isUploadingImage ? "Uploading image..." : "Image attached"}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 rounded-full border px-3 py-2">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleSelectImage}
+                  />
+
                   <Input
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
-                    placeholder="메시지 입력..."
+                    placeholder="Message..."
                     className="h-10 border-0 bg-transparent px-1 focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
@@ -913,12 +1069,20 @@ export default function DmWidget() {
 
                   <button
                     type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    aria-label="Attach image"
+                  >
+                    <ImageIcon className="h-5 w-5" />
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleSend}
-                    disabled={
-                      !content.trim() || !activeReceiverId || !isSocketConnected
-                    }
+                    disabled={!canSendMessage}
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:bg-muted disabled:text-muted-foreground"
-                    aria-label="메시지 보내기"
+                    aria-label="Send message"
                   >
                     <SendHorizonal className="h-4 w-4" />
                   </button>

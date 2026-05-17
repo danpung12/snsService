@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -10,8 +10,12 @@ export class SendMessageDto {
   senderId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  content!: string;
+  @IsOptional()
+  content?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 
   @IsString()
   @IsNotEmpty()
