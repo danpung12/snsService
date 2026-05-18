@@ -28,6 +28,7 @@ api.interceptors.response.use(
 
     const isAuthUrl =
       requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/logout") ||
       requestUrl.includes("/auth/signup") ||
       requestUrl.includes("/auth/token/access") ||
       requestUrl.includes("/auth/google");

@@ -6,23 +6,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useLogout } from "@/hooks/use-auth";
 import { useProfileData } from "@/hooks/use-profile-data";
 import { toBackendImageUrl } from "@/lib/image-url";
-import { useSetLogout, useUserId } from "@/store/auth";
+import { useUserId } from "@/store/auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Popover as PopoverPrimitive } from "radix-ui";
 
 export default function ProfileButton() {
   const userId = useUserId();
-  const setLogout = useSetLogout();
-  const router = useRouter();
   const { data: profile } = useProfileData(userId);
-
-  const signOut = () => {
-    setLogout();
-    router.push("/login");
-  };
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   if (!userId) return null;
 
@@ -57,12 +51,14 @@ export default function ProfileButton() {
           </Link>
         </PopoverPrimitive.Close>
         <PopoverPrimitive.Close asChild>
-          <div
-            onClick={signOut}
-            className="hover:bg-muted cursor-pointer px-4 py-3 text-sm"
+          <button
+            onClick={() => logout()}
+            disabled={isLoggingOut}
+            type="button"
+            className="hover:bg-muted cursor-pointer px-4 py-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            로그아웃
-          </div>
+            {isLoggingOut ? "로그아웃 중" : "로그아웃"}
+          </button>
         </PopoverPrimitive.Close>
       </PopoverContent>
     </Popover>

@@ -57,6 +57,16 @@ export class AuthController {
     return { message: '회원가입 및 로그인 성공' };
   }
 
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('accessToken', this.getCookieOptions());
+    res.clearCookie('refreshToken', this.getCookieOptions());
+
+    return {
+      message: '로그아웃 성공',
+    };
+  }
+
   //토큰 재발급
   @Post('token/access')
   @UseGuards(RefreshAuthGuard)

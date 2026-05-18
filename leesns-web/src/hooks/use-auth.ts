@@ -1,10 +1,11 @@
-import { LogIn, SignUp } from "@/service/auth";
+import { LogIn, Logout, SignUp } from "@/service/auth";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useSetLogin } from "@/store/auth";
+import { useSetLogin, useSetLogout } from "@/store/auth";
 import api from "@/lib/api";
-import { showAuthErrorPopup } from "@/lib/auth-error";
+import { getAuthErrorDetails, showAuthErrorPopup } from "@/lib/auth-error";
 import { AxiosError } from "axios";
+import { toast } from "sonner";
 
 export const useSignUp = () => {
   const router = useRouter();
@@ -23,6 +24,26 @@ export const useSignUp = () => {
     },
     onError: (error) => {
       showAuthErrorPopup(error);
+    },
+  });
+};
+
+export const useLogout = () => {
+  const router = useRouter();
+  const setLogout = useSetLogout();
+
+  return useMutation({
+    mutationFn: Logout,
+    onSuccess: () => {
+      setLogout();
+      router.replace("/login");
+    },
+    onError: (error) => {
+      const message = getAuthErrorDetails(error).message;
+
+      toast.error(
+        message === "N/A" ? "로그아웃에 실패했습니다." : message,
+      );
     },
   });
 };

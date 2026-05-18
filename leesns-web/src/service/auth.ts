@@ -36,3 +36,9 @@ export async function LogIn({
 
   return data;
 }
+
+export async function Logout() {
+  const { data } = await api.post(`/auth/logout`);
+
+  return data;
+}
