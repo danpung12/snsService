@@ -30,6 +30,7 @@ api.interceptors.response.use(
       requestUrl.includes("/auth/login") ||
       requestUrl.includes("/auth/logout") ||
       requestUrl.includes("/auth/signup") ||
+      requestUrl.includes("/auth/email/") ||
       requestUrl.includes("/auth/token/access") ||
       requestUrl.includes("/auth/google");
 

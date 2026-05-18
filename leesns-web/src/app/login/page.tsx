@@ -118,7 +118,10 @@ export default function LogInPage() {
 
         <p className="text-muted-foreground mt-6 text-center text-sm">
           계정이 없다면{" "}
-          <Link className="font-medium text-foreground hover:underline" href="/signup">
+          <Link
+            className="font-medium text-foreground hover:underline"
+            href="/signup"
+          >
             회원가입
           </Link>
         </p>

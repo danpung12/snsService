@@ -1,4 +1,10 @@
-import { LogIn, Logout, SignUp } from "@/service/auth";
+import {
+  LogIn,
+  Logout,
+  SendEmailCode,
+  SignUp,
+  VerifyEmailCode,
+} from "@/service/auth";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSetLogin, useSetLogout } from "@/store/auth";
@@ -6,6 +12,11 @@ import api from "@/lib/api";
 import { getAuthErrorDetails, showAuthErrorPopup } from "@/lib/auth-error";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
+
+type AuthErrorResponse = {
+  code?: string;
+  message?: string | string[];
+};
 
 export const useSignUp = () => {
   const router = useRouter();
@@ -25,6 +36,18 @@ export const useSignUp = () => {
     onError: (error) => {
       showAuthErrorPopup(error);
     },
+  });
+};
+
+export const useSendEmailCode = () => {
+  return useMutation({
+    mutationFn: SendEmailCode,
+  });
+};
+
+export const useVerifyEmailCode = () => {
+  return useMutation({
+    mutationFn: VerifyEmailCode,
   });
 };
 
@@ -61,7 +84,7 @@ export const useLogin = () => {
 
         router.replace("/");
       } catch (error) {
-        const err = error as AxiosError<any>;
+        const err = error as AxiosError<AuthErrorResponse>;
 
         window.alert(
           `에러 상세\n` +
@@ -80,7 +103,7 @@ export const useLogin = () => {
       }
     },
     onError: (error) => {
-      const err = error as AxiosError<any>;
+      const err = error as AxiosError<AuthErrorResponse>;
 
       window.alert("4. /users/me 실패 catch 진입");
 

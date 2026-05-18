@@ -42,3 +42,26 @@ export async function Logout() {
 
   return data;
 }
+
+export async function SendEmailCode({ email }: { email: string }) {
+  const { data } = await api.post(`/auth/email/code`, {
+    email,
+  });
+
+  return data;
+}
+
+export async function VerifyEmailCode({
+  email,
+  code,
+}: {
+  email: string;
+  code: string;
+}) {
+  const { data } = await api.post(`/auth/email/verify`, {
+    email,
+    code,
+  });
+
+  return data;
+}

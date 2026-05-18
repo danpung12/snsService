@@ -10,6 +10,8 @@ import { UploadsModule } from './uploads/uploads.module';
 import { FollowsModule } from './follows/follows.module';
 import { ChatsModule } from './chats/chats.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { MailModule } from './mail/mail.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     FollowsModule,
     ChatsModule,
     NotificationsModule,
+    MailModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

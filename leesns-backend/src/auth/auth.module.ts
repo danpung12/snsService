@@ -7,9 +7,11 @@ import { LocalStrategy } from './strategy/local.strategy';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { GoogleStrategy } from './strategy/google.strategy';
 import { JwtRefreshStrategy } from './strategy/jwt-refresh.strategy';
+import { MailModule } from 'src/mail/mail.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [JwtModule.register({}), UsersModule],
+  imports: [JwtModule.register({}), UsersModule, MailModule, RedisModule],
   controllers: [AuthController],
   providers: [
     AuthService,

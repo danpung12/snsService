@@ -101,6 +101,16 @@ export class AuthController {
     res.redirect(`${process.env.FRONTEND_URL}/auth/success`);
   }
 
+  @Post('email/code')
+  sendEmailCode(@Body('email') email: string) {
+    return this.authService.sendEmailCode(email);
+  }
+
+  @Post('email/verify')
+  verifyEmailCode(@Body('email') email: string, @Body('code') code: string) {
+    return this.authService.verifyEmailCode(email, code);
+  }
+
   // @Post('token/access')
   // @UseGuards(AccessTokenGuard)
   // async PostTokenAcess(@Headers('authorization') rawToken: string) {

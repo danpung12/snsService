@@ -7,12 +7,16 @@ import { Prisma, User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
+import { MailService } from 'src/mail/mail.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
+    private readonly mailService: MailService,
+    private readonly redisService: RedisService,
   ) {}
 
   // 토큰 발급 (Passport 가드 통과 후 호출)
@@ -58,11 +62,20 @@ export class AuthService {
 
   // 회원가입
   async signup(user: Pick<User, 'nickname' | 'email' | 'password'>) {
+    const verifiedKey = `email:verified:${user.email}`;
+
+    if (!(await this.redisService.get(verifiedKey))) {
+      throw new BadRequestException('이메일 인증이 필요합니다.');
+    }
+
     const hash = await bcrypt.hash(user.password!, 10);
     const newUser = await this.usersService.createUser({
       ...user,
       password: hash,
     });
+
+    await this.redisService.del(verifiedKey);
+
     return this.loginUser(newUser);
   }
 
@@ -75,6 +88,45 @@ export class AuthService {
       },
       isRefreshToken,
     );
+  }
+
+  
+  async sendEmailCode(email: string) {
+    const existingUser = await this.usersService.findByEmail(email);
+
+    if (existingUser) {
+      throw new BadRequestException('이미 가입된 이메일입니다');
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.redisService.set(`email:verify:${email}`, code, 60 * 3);
+
+    await this.mailService.sendVerifyCode(email, code);
+
+    return {
+      message: '인증번호가 이메일로 발송되었습니다.',
+    };
+  }
+  async verifyEmailCode(email: string, code: string) {
+    const savedCode = await this.redisService.get(`email:verify:${email}`);
+
+    if (!savedCode) {
+      throw new BadRequestException(
+        '인증번호가 만료되었거나 존재하지 않습니다',
+      );
+    }
+    if (savedCode !== code) {
+      throw new BadRequestException('인증번호가 일치하지 않습니다.');
+    }
+    await this.redisService.del(`email:verify:${email}`);
+
+    await this.redisService.set(`email:verified:${email}`, 'true', 60 * 10);
+
+    return {
+      ok: true,
+      message: `이메일 인증이 완료되었습니다.`,
+    };
   }
 
   async googleLogin(profile: any) {
