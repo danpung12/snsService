@@ -4,8 +4,7 @@ import { updatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { faker } from '@faker-js/faker/locale/ko';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
-import { promises } from 'fs';
-import { join } from 'path';
+
 import { publicUserSelect } from 'src/common/prisma-select/user.select';
 import { FollowsService } from 'src/follows/follows.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
@@ -90,7 +89,16 @@ export class PostsService {
       throw new NotFoundException('게시글을 찾을 수 없습니다.');
     }
 
-    return this.formatPost(post);
+    await this.prisma.post.update({
+      where: { id },
+      data: {
+        viewCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    return this.formatPost({ ...post, viewCount: post.viewCount + 1 });
   }
 
   async createPost(userid: string, postDto: CreatePostDto) {
