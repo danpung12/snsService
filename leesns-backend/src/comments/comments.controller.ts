@@ -55,7 +55,6 @@ export class CommentsController {
   })
   @ApiResponse({ status: 401, description: '액세스 토큰이 유효하지 않음' })
   @Get()
-  @UseGuards(JwtAuthGuard)
   getCommentByPost(
     @Param('postId', ParseIntPipe) postId: number,
     @Query() paginationDto: CursorPaginationDto,

@@ -128,7 +128,6 @@ export class FollowsController {
   })
   @ApiResponse({ status: 401, description: '액세스 토큰이 유효하지 않음' })
   @Get(':userId/followings')
-  @UseGuards(JwtAuthGuard)
   getUserFollowings(@Param('userId') userId: string) {
     return this.followsService.getFollowings(userId);
   }
@@ -143,7 +142,6 @@ export class FollowsController {
   })
   @ApiResponse({ status: 401, description: '액세스 토큰이 유효하지 않음' })
   @Get(':userId/followers')
-  @UseGuards(JwtAuthGuard)
   getUserFollowers(@Param('userId') userId: string) {
     return this.followsService.getFollowers(userId);
   }

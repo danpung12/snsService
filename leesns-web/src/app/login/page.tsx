@@ -5,16 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/use-auth";
 import { BACKEND_URL } from "@/lib/api_url";
-import { ArrowRight, Chrome, LockKeyhole, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, Chrome, LockKeyhole, Mail } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LogInPage() {
   const { mutate: login, isPending } = useLogin();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,12 +35,12 @@ export default function LogInPage() {
     const submittedPassword = String(formData.get("password") ?? password);
 
     if (submittedEmail === "") {
-      window.alert("이메일을 입력해주세요");
+      window.alert("이메일을 입력해주세요.");
       return;
     }
 
     if (submittedPassword.trim() === "") {
-      window.alert("비밀번호를 입력해주세요");
+      window.alert("비밀번호를 입력해주세요.");
       return;
     }
 
@@ -44,9 +55,20 @@ export default function LogInPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center py-8">
-      <section className="w-full max-w-md rounded-lg border bg-background p-6 shadow-sm md:p-8">
-        <div className="mb-8 flex flex-col gap-5">
-          <div className="flex items-center gap-3">
+      <div className="w-full max-w-md">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mb-4 px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+          onClick={handleBackClick}
+        >
+          <ArrowLeft className="size-4" />
+          뒤로가기
+        </Button>
+
+        <section className="w-full rounded-lg border bg-background p-6 shadow-sm md:p-8">
+          <div className="mb-8 flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-lg border bg-muted">
               <Image src={logo} alt="서비스 로고" className="h-5 w-auto" />
             </div>
@@ -57,75 +79,75 @@ export default function LogInPage() {
               </p>
             </div>
           </div>
-        </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-2 text-sm font-medium">
-              이메일
-              <div className="relative">
-                <Mail className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-                <Input
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 pl-10"
-                  type="email"
-                  placeholder="example@abc.com"
-                  autoComplete="email"
-                />
-              </div>
-            </label>
+          <form onSubmit={onSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                이메일
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 pl-10"
+                    type="email"
+                    placeholder="example@abc.com"
+                    autoComplete="email"
+                  />
+                </div>
+              </label>
 
-            <label className="flex flex-col gap-2 text-sm font-medium">
-              비밀번호
-              <div className="relative">
-                <LockKeyhole className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-                <Input
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 pl-10"
-                  type="password"
-                  placeholder="password"
-                  autoComplete="current-password"
-                />
-              </div>
-            </label>
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                비밀번호
+                <div className="relative">
+                  <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 pl-10"
+                    type="password"
+                    placeholder="password"
+                    autoComplete="current-password"
+                  />
+                </div>
+              </label>
+            </div>
+
+            <Button type="submit" className="h-11 w-full" disabled={isPending}>
+              {isPending ? "로그인 중..." : "로그인"}
+              <ArrowRight className="size-4" />
+            </Button>
+          </form>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-muted-foreground text-xs">또는</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Button type="submit" className="h-11 w-full" disabled={isPending}>
-            {isPending ? "로그인 중..." : "로그인"}
-            <ArrowRight className="size-4" />
-          </Button>
-        </form>
-
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-muted-foreground text-xs">또는</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button
-          type="button"
-          className="h-11 w-full"
-          variant="outline"
-          onClick={handleGoogleLogin}
-        >
-          <Chrome className="size-4" />
-          Google 계정으로 로그인
-        </Button>
-
-        <p className="text-muted-foreground mt-6 text-center text-sm">
-          계정이 없다면{" "}
-          <Link
-            className="font-medium text-foreground hover:underline"
-            href="/signup"
+          <Button
+            type="button"
+            className="h-11 w-full"
+            variant="outline"
+            onClick={handleGoogleLogin}
           >
-            회원가입
-          </Link>
-        </p>
-      </section>
+            <Chrome className="size-4" />
+            Google 계정으로 로그인
+          </Button>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            계정이 없다면{" "}
+            <Link
+              className="font-medium text-foreground hover:underline"
+              href="/signup"
+            >
+              회원가입
+            </Link>
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

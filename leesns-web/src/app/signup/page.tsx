@@ -1,5 +1,6 @@
 "use client";
 
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,8 +9,17 @@ import {
   useVerifyEmailCode,
 } from "@/hooks/use-auth";
 import { getAuthErrorDetails } from "@/lib/auth-error";
-import { Lock, Mail, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Lock,
+  Mail,
+  User,
+} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +27,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type EmailStatus = "success" | "error" | "";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [emailCode, setEmailCode] = useState("");
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("");
@@ -39,6 +50,15 @@ export default function SignUpPage() {
   const getErrorMessage = (error: unknown, fallback: string) => {
     const message = getAuthErrorDetails(error).message;
     return message === "N/A" ? fallback : message;
+  };
+
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
   };
 
   const handleEmailChange = (value: string) => {
@@ -68,7 +88,7 @@ export default function SignUpPage() {
           setEmailCode("");
           setEmailStatus("success");
           setEmailStatusMessage(
-            "이메일이 발송되었습니다. 메일함을 확인해주세요.",
+            "인증번호를 보냈습니다. 메일함을 확인해주세요.",
           );
           setIsEmailCodeSent(true);
           setIsEmailVerified(false);
@@ -159,98 +179,151 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-sm mx-auto">
-      <div className="text-xl flex flex-col gap-8 font-bold">회원가입</div>
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={email}
-              onChange={(e) => handleEmailChange(e.target.value)}
-              className="py-6 pl-10"
-              type="email"
-              placeholder="example@abc.com"
-            />
-          </div>
-          <Button
-            onClick={handleSendEmailCodeClick}
-            className="h-12 shrink-0 px-3 text-xs"
-            disabled={isSendingEmailCode || isEmailVerified}
-            type="button"
-            variant="outline"
-          >
-            {isSendingEmailCode ? "발송 중" : "인증번호 발송"}
-          </Button>
-        </div>
-        {emailStatusMessage && (
-          <p
-            className={
-              emailStatus === "success"
-                ? "text-xs text-green-600"
-                : "text-xs text-destructive"
-            }
-          >
-            {emailStatusMessage}
-          </p>
-        )}
-        {isEmailCodeSent && !isEmailVerified && (
-          <div className="flex flex-col gap-1 pt-1">
-            <div className="flex items-center gap-2">
-              <Input
-                value={emailCode}
-                onChange={(e) => setEmailCode(e.target.value)}
-                className="h-9 w-36 px-2 text-sm"
-                type="text"
-                inputMode="numeric"
-                placeholder="인증번호"
-              />
-              <Button
-                onClick={handleVerifyEmailCodeClick}
-                className="h-9 shrink-0 px-3 text-xs"
-                disabled={isVerifyingEmailCode}
-                type="button"
-                variant="outline"
-              >
-                {isVerifyingEmailCode ? "확인 중" : "확인"}
-              </Button>
+    <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center py-8">
+      <div className="w-full max-w-md">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mb-4 px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+          onClick={handleBackClick}
+        >
+          <ArrowLeft className="size-4" />
+          뒤로가기
+        </Button>
+
+        <section className="w-full rounded-lg border bg-background p-6 shadow-sm md:p-8">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40">
+              <Image src={logo} alt="서비스 로고" className="h-5 w-auto" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-normal">회원가입</h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                새 계정으로 피드와 대화에 참여하세요.
+              </p>
             </div>
           </div>
-        )}
-        <div className="relative">
-          <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            onChange={(e) => setPassword(e.target.value)}
-            className="py-6 pl-10"
-            type="password"
-            placeholder="비밀번호"
-          />
-        </div>
-        <div className="relative">
-          <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            onChange={(e) => setNickname(e.target.value)}
-            className="py-6 pl-10"
-            type="text"
-            placeholder="닉네임"
-          />
-        </div>
-      </div>
 
-      <div>
-        <Button
-          onClick={handleSignUpClick}
-          className="w-full"
-          disabled={isSigningUp}
-          type="button"
-        >
-          {isSigningUp ? "회원가입 중" : "회원가입"}
-        </Button>
-      </div>
-      <div>
-        <Link className="text-muted-foreground hover:underline" href={"/login"}>
-          이미 계정이 있다면? 로그인
-        </Link>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              이메일
+              <div className="flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    className="h-12 pl-10"
+                    type="email"
+                    placeholder="example@abc.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <Button
+                  onClick={handleSendEmailCodeClick}
+                  className="h-12 shrink-0 px-3 text-xs"
+                  disabled={isSendingEmailCode || isEmailVerified}
+                  type="button"
+                  variant="outline"
+                >
+                  {isEmailVerified
+                    ? "인증완료"
+                    : isSendingEmailCode
+                      ? "발송 중"
+                      : "인증번호"}
+                </Button>
+              </div>
+            </label>
+
+            {emailStatusMessage && (
+              <p
+                className={
+                  emailStatus === "success"
+                    ? "flex items-center gap-1 text-xs text-emerald-600"
+                    : "text-xs text-destructive"
+                }
+              >
+                {emailStatus === "success" && (
+                  <CheckCircle2 className="size-3" />
+                )}
+                {emailStatusMessage}
+              </p>
+            )}
+
+            {isEmailCodeSent && !isEmailVerified && (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  className="h-10 flex-1"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="인증번호"
+                />
+                <Button
+                  onClick={handleVerifyEmailCodeClick}
+                  className="h-10 shrink-0"
+                  disabled={isVerifyingEmailCode}
+                  type="button"
+                  variant="secondary"
+                >
+                  {isVerifyingEmailCode ? "확인 중" : "확인"}
+                </Button>
+              </div>
+            )}
+
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              비밀번호
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pl-10"
+                  type="password"
+                  placeholder="password"
+                  autoComplete="new-password"
+                />
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              닉네임
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="h-12 pl-10"
+                  type="text"
+                  placeholder="닉네임"
+                  autoComplete="nickname"
+                />
+              </div>
+            </label>
+
+            <Button
+              onClick={handleSignUpClick}
+              className="mt-1 h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={isSigningUp}
+              type="button"
+            >
+              {isSigningUp ? "회원가입 중..." : "회원가입"}
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            이미 계정이 있다면{" "}
+            <Link
+              className="font-medium text-foreground hover:underline"
+              href="/login"
+            >
+              로그인
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );

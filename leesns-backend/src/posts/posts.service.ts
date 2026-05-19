@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { updatePostDto } from './dto/update-post.dto';
 import { PrismaService } from 'prisma/prisma.service';
@@ -30,7 +34,7 @@ export class PostsService {
   // Post를 전체 조회한다.
   async getAllPosts(
     paginationDto: CursorPaginationDto,
-    userId: string,
+    userId?: string,
     whereCondition?: string[],
   ) {
     const { cursor, take = 5, authorId } = paginationDto;
@@ -48,10 +52,12 @@ export class PostsService {
         author: {
           select: publicUserSelect,
         },
-        likes: {
-          where: { userId },
-          select: { id: true },
-        },
+        likes: userId
+          ? {
+              where: { userId },
+              select: { id: true },
+            }
+          : false,
 
         images: {
           orderBy: { order: 'asc' },
@@ -77,7 +83,7 @@ export class PostsService {
         author: {
           select: publicUserSelect,
         },
-        likes: { where: { userId }, select: { id: true } },
+        likes: userId ? { where: { userId }, select: { id: true } } : false,
 
         images: {
           orderBy: { order: 'asc' },
@@ -130,8 +136,25 @@ export class PostsService {
     return this.formatPost(post);
   }
 
-  async updatePost(id: number, postDto: updatePostDto) {
-    await this.getPostbyId(id);
+  private async assertPostOwner(id: number, userId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('寃뚯떆湲??李얠쓣 ???놁뒿?덈떎.');
+    }
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException(
+        '寃뚯떆湲???섏젙?섍굅???쒖젣?????쒗븳???놁뒿?덈떎.',
+      );
+    }
+  }
+
+  async updatePost(id: number, postDto: updatePostDto, userId: string) {
+    await this.assertPostOwner(id, userId);
 
     const { images, ...postData } = postDto;
 
@@ -164,8 +187,8 @@ export class PostsService {
     return this.formatPost(post);
   }
 
-  async deletePost(id: number) {
-    await this.getPostbyId(id);
+  async deletePost(id: number, userId: string) {
+    await this.assertPostOwner(id, userId);
 
     await this.prisma.post.delete({
       where: { id },

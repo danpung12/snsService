@@ -30,11 +30,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 }
 
+export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+  handleRequest<TUser = any>(err: unknown, user: TUser): TUser {
+    if (err || !user) {
+      return null as TUser;
+    }
+
+    return user;
+  }
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly usersService: UsersService) {
     super({
-      jwtFromRequest: (req: Request) => req?.cookies.accessToken || null,
+      jwtFromRequest: (req: Request) => req?.cookies?.accessToken || null,
       ignoreExpiration: false,
       secretOrKey: process.env.ACCESS_TOKEN_SECRET!,
     });

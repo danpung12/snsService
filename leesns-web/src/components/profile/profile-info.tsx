@@ -14,7 +14,6 @@ export default function ProfileInfo({ userId }: { userId: string }) {
   const currentUserId = useUserId();
   const { data: profile, error, isPending } = useProfileData(userId);
   const isMine = currentUserId === userId;
-  const hasCurrentUser = Boolean(currentUserId);
   const {
     data: profileFollowings = [],
     isPending: isProfileFollowingsPending,
@@ -23,7 +22,7 @@ export default function ProfileInfo({ userId }: { userId: string }) {
     useFollowersData(userId, !!userId);
   const { data: myFollowings = [] } = useFollowingsData(
     currentUserId,
-    hasCurrentUser && !isMine,
+    Boolean(currentUserId) && !isMine,
   );
 
   if (error) {
@@ -83,16 +82,14 @@ export default function ProfileInfo({ userId }: { userId: string }) {
         {isMine ? (
           <EditProfileButton />
         ) : (
-          hasCurrentUser && (
-            <div className="flex flex-wrap justify-center gap-2">
-              <FollowButton userId={userId} isFollowing={isFollowing} />
-              <MessageButton
-                currentUserId={currentUserId}
-                targetUserId={userId}
-                targetNickname={profile.nickname}
-              />
-            </div>
-          )
+          <div className="flex flex-wrap justify-center gap-2">
+            <FollowButton userId={userId} isFollowing={isFollowing} />
+            <MessageButton
+              currentUserId={currentUserId}
+              targetUserId={userId}
+              targetNickname={profile.nickname}
+            />
+          </div>
         )}
       </div>
     </div>

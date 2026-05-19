@@ -2,6 +2,7 @@
 
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useUserId } from "@/store/auth";
 import { Moon, SunIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import ProfileButton from "./header/profile-button";
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const userId = useUserId();
   const { resolvedTheme, setTheme } = useTheme();
   const isChatPage = pathname.startsWith("/chat/");
   const isAuthPage =
@@ -44,7 +46,9 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
               type="button"
               className="hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
               onClick={() => setTheme(isDarkMode ? "light" : "dark")}
-              aria-label={isDarkMode ? "라이트 모드로 변경" : "다크 모드로 변경"}
+              aria-label={
+                isDarkMode ? "라이트 모드로 변경" : "다크 모드로 변경"
+              }
             >
               {isDarkMode ? (
                 <Moon className="size-6" />
@@ -54,7 +58,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
             </button>
             {!isAuthPage && (
               <>
-                <NotificationButton />
+                {userId && <NotificationButton />}
                 <ProfileButton />
               </>
             )}

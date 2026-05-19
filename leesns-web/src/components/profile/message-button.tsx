@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useRequireLogin } from "@/hooks/use-require-login";
 import { createChatSocket } from "@/lib/chat-socket";
 import type { ChatRoom } from "@/types";
 import { MessageCircle } from "lucide-react";
@@ -18,13 +19,11 @@ export default function MessageButton({
   targetNickname: string;
 }) {
   const router = useRouter();
+  const requireLogin = useRequireLogin();
   const [isPending, setIsPending] = useState(false);
 
   const handleClick = () => {
-    if (!currentUserId) {
-      toast.error("로그인이 필요합니다.");
-      return;
-    }
+    if (!requireLogin(() => {})) return;
 
     setIsPending(true);
 

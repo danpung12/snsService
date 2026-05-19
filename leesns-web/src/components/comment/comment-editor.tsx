@@ -6,6 +6,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useCreateComment } from "@/hooks/use-create-comment";
 import { useUpdateComment } from "@/hooks/use-update-comment";
+import { useRequireLogin } from "@/hooks/use-require-login";
+import { useUserId } from "@/store/auth";
+import { MessageCircle } from "lucide-react";
+import { saveLoginReturnTo } from "@/lib/auth-navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type CreateMode = {
   type: "CREATE";
@@ -23,6 +28,10 @@ type EditMode = {
 type Props = CreateMode | EditMode;
 
 export default function CommentEditor(props: Props) {
+  const requireLogin = useRequireLogin();
+  const userId = useUserId();
+  const pathname = usePathname();
+  const router = useRouter();
   const { mutate: createComment, isPending: isCreateCommentPending } =
     useCreateComment({
       onSuccess: () => {
@@ -56,22 +65,56 @@ export default function CommentEditor(props: Props) {
   const handleSubmitClick = () => {
     if (content.trim() === "") return;
 
-    if (props.type === "CREATE") {
-      createComment({
-        postId: props.postId,
-        content,
-      });
-    } else {
-      updateComment({
-        postId: props.postId,
-        id: props.commentId,
-        content,
-      });
-    }
+    requireLogin(() => {
+      if (props.type === "CREATE") {
+        createComment({
+          postId: props.postId,
+          content,
+        });
+      } else {
+        updateComment({
+          postId: props.postId,
+          id: props.commentId,
+          content,
+        });
+      }
+    });
   };
 
   const isPending = isCreateCommentPending || isUpdateCommentPending;
   const isDisabled = isPending || content.trim() === "";
+  const goToLogin = () => {
+    const query = window.location.search.slice(1);
+    const returnTo = query ? `${pathname}?${query}` : pathname;
+
+    saveLoginReturnTo(returnTo);
+    router.push(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+  };
+
+  if (props.type === "CREATE" && !userId) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <div className="bg-background flex h-9 w-9 shrink-0 items-center justify-center rounded-full border">
+            <MessageCircle className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-medium">
+              댓글을 작성하시려면 로그인이 필요합니다.
+            </div>
+            <p className="text-muted-foreground mt-1 text-sm">
+              로그인하면 댓글을 남기고 대화에 참여할 수 있습니다.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button type="button" onClick={goToLogin}>
+            로그인하고 댓글 작성
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

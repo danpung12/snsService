@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const PROTECTED_PATH_PREFIXES = ["/chat", "/notifications", "/mypage", "/me"];
+
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasAuthCookie =
     request.cookies.has("accessToken") || request.cookies.has("refreshToken");
 
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
-  const isAuthSuccessPage = pathname.startsWith("/auth/success");
+  if (isProtectedPath(pathname) && !hasAuthCookie) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set(
+      "returnTo",
+      `${pathname}${request.nextUrl.search}`,
+    );
 
-  if (!isAuthPage && !isAuthSuccessPage && !hasAuthCookie) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

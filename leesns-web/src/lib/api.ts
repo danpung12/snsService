@@ -34,7 +34,11 @@ api.interceptors.response.use(
       requestUrl.includes("/auth/token/access") ||
       requestUrl.includes("/auth/google");
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthUrl) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthUrl
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -50,12 +54,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        if (
-          typeof window !== "undefined" &&
-          !["/login", "/signup"].includes(window.location.pathname)
-        ) {
-          window.location.href = "/login";
-        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

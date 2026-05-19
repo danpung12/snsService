@@ -5,13 +5,15 @@ import {
   SignUp,
   VerifyEmailCode,
 } from "@/service/auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSetLogin, useSetLogout } from "@/store/auth";
 import api from "@/lib/api";
 import { getAuthErrorDetails, showAuthErrorPopup } from "@/lib/auth-error";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
+import { consumeLoginReturnTo, normalizeReturnTo } from "@/lib/auth-navigation";
+import { QUERY_KEYS } from "@/lib/query-keys";
 
 type AuthErrorResponse = {
   code?: string;
@@ -59,20 +61,19 @@ export const useLogout = () => {
     mutationFn: Logout,
     onSuccess: () => {
       setLogout();
-      router.replace("/login");
+      router.replace("/");
     },
     onError: (error) => {
       const message = getAuthErrorDetails(error).message;
 
-      toast.error(
-        message === "N/A" ? "로그아웃에 실패했습니다." : message,
-      );
+      toast.error(message === "N/A" ? "로그아웃에 실패했습니다." : message);
     },
   });
 };
 
 export const useLogin = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const setLogin = useSetLogin();
 
   return useMutation({
@@ -81,8 +82,13 @@ export const useLogin = () => {
       try {
         const res = await api.get("/users/me");
         setLogin(res.data.id, res.data.nickname);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.post.all });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.follow.all });
 
-        router.replace("/");
+        const params = new URLSearchParams(window.location.search);
+        router.replace(
+          consumeLoginReturnTo(normalizeReturnTo(params.get("returnTo"))),
+        );
       } catch (error) {
         const err = error as AxiosError<AuthErrorResponse>;
 

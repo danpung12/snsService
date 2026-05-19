@@ -8,13 +8,17 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { GetUser } from 'src/users/decorator/user.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
-import { JwtAuthGuard } from 'src/auth/strategy/jwt.strategy';
+import {
+  JwtAuthGuard,
+  OptionalJwtAuthGuard,
+} from 'src/auth/strategy/jwt.strategy';
 import { updatePostDto } from './dto/update-post.dto';
 import { CursorPaginationDto } from 'src/common/validation-message/dto/cursor-pagination.dto';
 import { ResponseTimeInterceptor } from 'src/common/interceptors/response-time.interceptor';
@@ -74,12 +78,9 @@ export class PostsController {
   })
   @ApiResponse({ status: 401, description: '액세스 토큰이 유효하지 않음' })
   @Get()
-  @UseGuards(JwtAuthGuard)
-  getPosts(
-    @Query() pagnationDto: CursorPaginationDto,
-    @GetUser('id') userId: string,
-  ) {
-    return this.postsService.getAllPosts(pagnationDto, userId);
+  @UseGuards(OptionalJwtAuthGuard)
+  getPosts(@Query() pagnationDto: CursorPaginationDto, @Req() req) {
+    return this.postsService.getAllPosts(pagnationDto, req.user?.id);
   }
 
   @ApiBearerAuth()
@@ -114,12 +115,9 @@ export class PostsController {
   @ApiResponse({ status: 401, description: '액세스 토큰이 유효하지 않음' })
   @ApiResponse({ status: 404, description: '게시글을 찾을 수 없음' })
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  getPost(
-    @Param('id', ParseIntPipe) id: number,
-    @GetUser('id') userId: string,
-  ) {
-    return this.postsService.getPostbyId(id, userId);
+  @UseGuards(OptionalJwtAuthGuard)
+  getPost(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    return this.postsService.getPostbyId(id, req.user?.id);
   }
 
   // POST를 생성한다.
@@ -156,11 +154,13 @@ export class PostsController {
   })
   @ApiResponse({ status: 404, description: '게시글을 찾을 수 없음' })
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   patchPost(
     @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') userId: string,
     @Body() body: updatePostDto,
   ) {
-    return this.postsService.updatePost(id, body);
+    return this.postsService.updatePost(id, body, userId);
   }
 
   // id에 해당되는 POST를 삭제한다.
@@ -174,8 +174,12 @@ export class PostsController {
   })
   @ApiResponse({ status: 404, description: '게시글을 찾을 수 없음' })
   @Delete(':id')
-  deletePost(@Param('id', ParseIntPipe) id: number) {
-    return this.postsService.deletePost(id);
+  @UseGuards(JwtAuthGuard)
+  deletePost(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser('id') userId: string,
+  ) {
+    return this.postsService.deletePost(id, userId);
   }
 
   @ApiOperation({ summary: '목업 게시글 생성' })
