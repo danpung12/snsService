@@ -9,6 +9,9 @@ export function usePostByIdData(postId: number, type: "FEED" | "DETAIL") {
     queryKey: QUERY_KEYS.post.byId(postId),
     queryFn: () => fetchPostById(postId),
     enabled: type === "DETAIL",
+    refetchOnMount: type === "DETAIL" ? "always" : false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
     staleTime: Infinity,
   });
 }

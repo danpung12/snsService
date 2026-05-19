@@ -51,15 +51,13 @@ model Post {
   created_at   DateTime @default(now())
   comments Comment[]
 
-  
-  
-
   authorId String
   author User @relation(fields: [authorId], references: [id])
 
   notification Notification[]
 
   viewCount Int @default(0)
+  dailyStats  PostDailyStat[]
 
 }
 
@@ -99,6 +97,22 @@ model Comment{
 
   notification Notification[]
 }
+
+
+model PostDailyStat{
+  
+  id  String  @id @default(uuid())
+
+  postId  Int
+  post  Post @relation(fields: [postId],references: [id], onDelete: Cascade) 
+
+  date  DateTime
+  snapshotViewCount Int @default(0)
+
+  @@unique([postId, date])
+
+}
+
 
 model Follow {
   id String @id @default(uuid())

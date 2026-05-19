@@ -32,12 +32,18 @@ export interface Post {
   likeCount?: number;
   isLiked?: boolean;
   commentCount?: number;
+  viewCount: number;
 }
 
 export interface TogglePostLikeResponse {
   likeCount: number;
   isLiked: boolean;
 }
+
+export type PostViewStat = {
+  date: string;
+  snapshotViewCount: number;
+};
 
 export interface FollowRelation {
   id: string;

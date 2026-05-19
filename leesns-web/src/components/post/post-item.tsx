@@ -17,12 +17,13 @@ import { toBackendImageUrl } from "@/lib/image-url";
 import { formatTimeAgo } from "@/lib/time";
 import { useUserId } from "@/store/auth";
 import type { Post } from "@/types";
-import { MessageCircle } from "lucide-react";
+import { Eye, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import DeletePostItemButton from "./delete-post-item-button";
 import EditPostItemButton from "./edit-post-item-button";
 import LikePostButton from "./like-post-button";
+import PostAnalyticsDialog from "./post-analytics-dialog";
 
 function getPostImageUrls(post: Post) {
   const imageUrls = [
@@ -159,6 +160,7 @@ export default function PostItem({
 
         {isMine && (
           <div className="text-muted-foreground flex shrink-0 items-center gap-1 text-sm">
+            {type === "DETAIL" && <PostAnalyticsDialog post={post} />}
             <EditPostItemButton {...post} />
             <DeletePostItemButton postId={post.id} />
           </div>
@@ -219,7 +221,7 @@ export default function PostItem({
         )}
       </div>
 
-      <div className="mt-auto flex gap-2">
+      <div className="mt-auto flex flex-wrap gap-2">
         <LikePostButton
           id={post.id}
           likeCount={post.likeCount ?? 0}
@@ -234,6 +236,11 @@ export default function PostItem({
             </div>
           </Link>
         )}
+
+        <div className="text-muted-foreground flex items-center gap-2 rounded-xl border px-4 py-2 text-sm">
+          <Eye className="h-4 w-4" />
+          <span>조회수 {post.viewCount ?? 0}</span>
+        </div>
       </div>
     </article>
   );
