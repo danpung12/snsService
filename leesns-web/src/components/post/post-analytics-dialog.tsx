@@ -88,12 +88,12 @@ function MetricCard({
   icon: LucideIcon;
 }) {
   return (
-    <div className="rounded-xl border bg-background p-4">
+    <div className="rounded-xl border bg-muted/30 p-4 shadow-[var(--shadow-control)]">
       <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
         <Icon className="h-4 w-4" />
         <span>{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold tracking-normal md:text-3xl">
+      <div className="mt-2 text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
         {value.toLocaleString()}
       </div>
     </div>

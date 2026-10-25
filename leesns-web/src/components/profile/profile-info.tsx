@@ -55,14 +55,14 @@ export default function ProfileInfo({ userId }: { userId: string }) {
       <img
         src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
         alt={`${profile.nickname} 프로필 이미지`}
-        className="h-30 w-30 rounded-full object-cover"
+        className="profile-avatar h-30 w-30 rounded-full object-cover"
         onError={(event) => {
           event.currentTarget.src = defaultAvatar.src;
         }}
       />
 
       <div className="flex flex-col items-center gap-3">
-        <div className="text-xl font-bold">{profile.nickname}</div>
+        <div className="text-2xl font-semibold tracking-tight">{profile.nickname}</div>
 
         <div className="flex items-center gap-2">
           <FollowListDialog

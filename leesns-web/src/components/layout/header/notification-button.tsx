@@ -60,7 +60,7 @@ function NotificationAvatar({ notification }: { notification: Notification }) {
     <img
       src={avatarUrl ? toBackendImageUrl(avatarUrl) : defaultAvatar.src}
       alt={`${notification.sender?.nickname || UNKNOWN_USER} 프로필 이미지`}
-      className="h-9 w-9 shrink-0 rounded-full object-cover"
+      className="avatar-polish h-9 w-9 shrink-0 rounded-full object-cover"
       onError={(event) => {
         event.currentTarget.src = defaultAvatar.src;
       }}
@@ -116,18 +116,18 @@ export default function NotificationButton() {
           type="button"
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-full"
+          className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
           aria-label="알림"
         >
-          <Bell className="size-6" />
+          <Bell className="size-5" />
           {headerUnreadCount > 0 && (
-            <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-[10px] font-bold leading-5 text-white">
+            <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-[var(--brand)] px-1 text-[10px] font-bold leading-5 text-[var(--brand-foreground)]">
               {badgeText}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-[min(320px,calc(100vw-2rem))] overflow-hidden p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="font-semibold">알림</div>
           <Button
@@ -162,7 +162,7 @@ export default function NotificationButton() {
                 type="button"
                 className={cn(
                   "flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted",
-                  !notification.isRead && "bg-muted/50",
+                  !notification.isRead && "bg-[var(--brand-soft)]",
                 )}
                 onClick={() => handleNotificationClick(notification)}
               >
@@ -178,7 +178,7 @@ export default function NotificationButton() {
                   )}
                 </div>
                 {!notification.isRead && (
-                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--brand)]" />
                 )}
               </button>
             ))}

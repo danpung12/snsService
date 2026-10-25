@@ -93,7 +93,7 @@ export default function CommentEditor(props: Props) {
 
   if (props.type === "CREATE" && !userId) {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
+      <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4">
         <div className="flex items-start gap-3">
           <div className="bg-background flex h-9 w-9 shrink-0 items-center justify-center rounded-full border">
             <MessageCircle className="h-4 w-4" />
@@ -120,7 +120,7 @@ export default function CommentEditor(props: Props) {
     <div
       className={
         props.type === "CREATE"
-          ? "flex flex-col gap-3 rounded-lg border p-4"
+          ? "flex flex-col gap-3 rounded-xl border bg-muted/25 p-4 shadow-[var(--shadow-control)]"
           : "flex flex-col gap-2"
       }
     >

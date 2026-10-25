@@ -53,7 +53,7 @@ export default function CommentItem(props: NestedComment) {
 
   return (
     <div
-      className={`flex flex-col gap-8 pb-5 ${
+      className={`flex flex-col gap-6 pb-5 ${
         isRootComment ? "border-b" : "ml-6"
       }`}
     >
@@ -61,7 +61,7 @@ export default function CommentItem(props: NestedComment) {
         <Link href={props.author?.id ? `/profile/${props.author.id}` : "#"}>
           <div className="flex h-full flex-col">
             <img
-              className="h-10 w-10 rounded-full object-cover"
+              className="avatar-polish h-10 w-10 rounded-full object-cover"
               src={avatarSrc}
               alt={`${authorName} 프로필 이미지`}
               onError={(event) => {
@@ -73,16 +73,16 @@ export default function CommentItem(props: NestedComment) {
           </div>
         </Link>
 
-        <div className="flex w-full flex-col gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex items-start justify-between gap-4">
-            <div className="font-bold">{authorName}</div>
+            <div className="text-[15px] font-semibold">{authorName}</div>
 
             {isMine && (
               <div className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
                 <button
                   type="button"
                   onClick={() => setIsEditing((current) => !current)}
-                  className="cursor-pointer hover:underline"
+                  className="cursor-pointer transition-colors hover:text-[var(--brand)] hover:underline"
                 >
                   수정
                 </button>
@@ -90,7 +90,7 @@ export default function CommentItem(props: NestedComment) {
                 <button
                   type="button"
                   onClick={handleDeleteClick}
-                  className="cursor-pointer hover:underline"
+                  className="cursor-pointer transition-colors hover:text-[var(--brand)] hover:underline"
                 >
                   삭제
                 </button>

@@ -13,10 +13,10 @@ export default function CreatePostButton() {
       <div>
         <div
           onClick={() => requireLogin(open)}
-          className="bg-muted cursor-pointer py-4 px-6 rounded-xl text-muted-foreground flex justify-between"
+          className="bg-card shadow-[inset_0_0_0_1px_var(--border),var(--shadow-control)] transition-colors hover:bg-accent/60 cursor-pointer py-4 px-6 rounded-2xl text-muted-foreground flex justify-between items-center"
         >
-          <div>나누고 싶은 이야기가 있나요?</div>
-          <PlusCircleIcon className="h-5 w-5" />
+          <div className="text-[15px] font-medium text-foreground/80">게시글 작성</div>
+          <PlusCircleIcon className="h-5 w-5 text-[var(--brand)]" />
         </div>
       </div>
     </>

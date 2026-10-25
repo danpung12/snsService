@@ -31,8 +31,8 @@ export default function FollowListDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="ghost" className="h-auto flex-col gap-1 px-4 py-2">
-          <span className="text-base font-bold">{follows.length}</span>
+        <Button type="button" variant="ghost" className="h-auto flex-col gap-1 rounded-xl px-4 py-2">
+          <span className="text-lg font-semibold tabular-nums">{follows.length}</span>
           <span className="text-muted-foreground text-xs">{title}</span>
         </Button>
       </DialogTrigger>

@@ -192,16 +192,13 @@ export default function SignUpPage() {
           뒤로가기
         </Button>
 
-        <section className="w-full rounded-lg border bg-background p-6 shadow-sm md:p-8">
+        <section className="w-full rounded-2xl border bg-card p-6 shadow-[var(--shadow-panel)] md:p-8">
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-muted/60">
               <Image src={logo} alt="서비스 로고" className="h-5 w-auto" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-normal">회원가입</h1>
-              <p className="text-muted-foreground mt-1 text-sm">
-                새 계정으로 피드와 대화에 참여하세요.
-              </p>
+              <h1 className="text-2xl font-semibold tracking-tight">회원가입</h1>
             </div>
           </div>
 

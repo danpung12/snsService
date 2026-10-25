@@ -14,11 +14,11 @@ export default function PostFeedTabs() {
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="bg-muted grid grid-cols-2 gap-1 rounded-lg p-1">
+      <div className="bg-secondary/80 grid grid-cols-2 gap-1 rounded-xl p-1 shadow-[inset_0_0_0_1px_var(--border)]">
         <Button
           type="button"
           variant={feed === "all" ? "default" : "ghost"}
-          className={cn("h-9", feed !== "all" && "hover:bg-background")}
+          className={cn("h-10 rounded-lg", feed !== "all" && "hover:bg-background")}
           onClick={() => setFeed("all")}
         >
           전체
@@ -26,7 +26,7 @@ export default function PostFeedTabs() {
         <Button
           type="button"
           variant={feed === "following" ? "default" : "ghost"}
-          className={cn("h-9", feed !== "following" && "hover:bg-background")}
+          className={cn("h-10 rounded-lg", feed !== "following" && "hover:bg-background")}
           onClick={() => requireLogin(() => setFeed("following"))}
         >
           팔로잉

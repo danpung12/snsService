@@ -55,14 +55,14 @@ export default function ProfileButton() {
                 : defaultAvatar.src
             }
             alt="프로필 이미지"
-            className="h-7 w-7 rounded-full object-cover"
+            className="avatar-polish h-7 w-7 rounded-full object-cover"
             onError={(event) => {
               event.currentTarget.src = defaultAvatar.src;
             }}
           />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="flex w-40 flex-col p-0">
+      <PopoverContent className="flex w-40 flex-col overflow-hidden p-0">
         <PopoverPrimitive.Close asChild>
           <Link href={`/profile/${userId}`}>
             <div className="hover:bg-muted cursor-pointer px-4 py-3 text-sm">

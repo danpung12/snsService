@@ -652,7 +652,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <main className="mx-auto grid h-[calc(100dvh-60px)] w-full max-w-[1440px] grid-cols-1 overflow-hidden bg-background md:h-[calc(100dvh-92px)] md:grid-cols-[300px_minmax(0,1fr)] md:rounded-lg md:border">
+    <main className="mx-auto grid h-[calc(100dvh-60px)] w-full max-w-[1440px] grid-cols-1 overflow-hidden bg-background md:h-[calc(100dvh-96px)] md:grid-cols-[300px_minmax(0,1fr)] md:rounded-xl md:border md:shadow-[var(--shadow-panel)]">
       <aside className="hidden min-w-0 flex-col border-r md:flex">
         <div className="flex h-16 items-center justify-between border-b px-4">
           <h1 className="text-lg font-bold">메시지</h1>
@@ -685,7 +685,7 @@ export default function ChatRoomPage() {
                   type="button"
                   className={cn(
                     "flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted",
-                    isActive && "bg-muted",
+                    isActive && "bg-[var(--brand-soft)]",
                   )}
                   onClick={() => openRoom(room.id)}
                 >
@@ -721,7 +721,7 @@ export default function ChatRoomPage() {
                         {lastMessage ?? "첫 대화를 시작해보세요."}
                       </div>
                       {hasUnreadMessage && (
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--brand)]" />
                       )}
                     </div>
                   </div>
@@ -883,7 +883,7 @@ export default function ChatRoomPage() {
                             "flex max-w-[68%] flex-col overflow-hidden text-sm leading-6 text-foreground",
                             isImageOnlyMessage
                               ? "rounded-2xl rounded-bl-md bg-transparent p-0"
-                              : "gap-2 rounded-2xl rounded-bl-md bg-muted px-4 py-2",
+                              : "gap-2 rounded-2xl rounded-bl-md bg-muted/70 shadow-[var(--shadow-control)] px-4 py-2",
                           )}
                         >
                           {message.imageUrl && (
@@ -916,7 +916,7 @@ export default function ChatRoomPage() {
               <div className="relative h-20 w-20 overflow-hidden rounded-lg border bg-background">
                 <img
                   src={selectedImagePreviewUrl ?? selectedImageUrl ?? ""}
-                  alt="Attached image preview"
+                  alt="첨부 이미지 미리보기"
                   className="h-full w-full object-cover"
                   onError={(event) => {
                     event.currentTarget.src = defaultPostImage.src;
@@ -926,13 +926,13 @@ export default function ChatRoomPage() {
                   type="button"
                   onClick={clearSelectedImage}
                   className="absolute right-1 top-1 rounded-full bg-black/55 p-0.5 text-white"
-                  aria-label="Remove attached image"
+                  aria-label="첨부 이미지 삭제"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </div>
               <div className="min-w-0 text-sm text-muted-foreground">
-                {isUploadingImage ? "Uploading image..." : "Image attached"}
+                {isUploadingImage ? "이미지 업로드 중..." : "이미지 첨부됨"}
               </div>
             </div>
           )}
@@ -949,7 +949,7 @@ export default function ChatRoomPage() {
             <Input
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="Message..."
+              placeholder="메시지를 입력하세요"
               disabled={!currentUserId || isUploadingImage}
               className="h-11 rounded-full px-4"
             />
@@ -961,7 +961,7 @@ export default function ChatRoomPage() {
               disabled={!currentUserId || isUploadingImage}
               className="h-11 w-11 shrink-0 rounded-full"
               onClick={() => imageInputRef.current?.click()}
-              aria-label="Attach image"
+              aria-label="이미지 첨부"
             >
               <ImageIcon className="h-5 w-5" />
             </Button>
@@ -972,7 +972,7 @@ export default function ChatRoomPage() {
               className="h-11 rounded-full px-4"
             >
               <SendHorizonal className="h-4 w-4" />
-              Send
+              보내기
             </Button>
           </div>
         </form>

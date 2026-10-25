@@ -669,12 +669,12 @@ export default function DmWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="relative flex h-16 w-16 items-center justify-center rounded-full border bg-background shadow-[0_12px_36px_rgba(0,0,0,0.18)] transition-transform hover:scale-105 hover:bg-muted md:h-20 md:w-20"
+          className="relative flex h-16 w-16 items-center justify-center rounded-full border border-primary/10 bg-primary text-primary-foreground shadow-[var(--shadow-floating)] transition-colors hover:bg-primary/90 md:h-20 md:w-20"
           aria-label="DM 열기"
         >
           <Send className="h-7 w-7 -rotate-12" />
           {unreadMessageCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 min-w-6 rounded-full bg-red-500 px-1.5 text-center text-xs font-bold leading-6 text-white">
+            <span className="absolute -right-0.5 -top-0.5 min-w-6 rounded-full bg-[var(--brand)] px-1.5 text-center text-xs font-bold leading-6 text-[var(--brand-foreground)]">
               {unreadBadgeText}
             </span>
           )}
@@ -684,7 +684,7 @@ export default function DmWidget() {
       {isOpen && (
         <div
           className={cn(
-            "flex flex-col overflow-hidden rounded-3xl border bg-background shadow-[0_18px_60px_rgba(0,0,0,0.22)]",
+            "flex max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-floating)]",
             hasActiveConversation
               ? "h-[min(560px,calc(100dvh-40px))] w-[360px] md:h-[min(640px,calc(100dvh-112px))] md:w-[420px]"
               : "h-[min(350px,calc(100dvh-40px))] w-[300px] md:h-[min(380px,calc(100dvh-112px))] md:w-[320px]",
@@ -783,7 +783,7 @@ export default function DmWidget() {
                               {lastMessage ?? "첫 대화를 시작해보세요."}
                             </div>
                             {hasUnreadMessage && (
-                              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--brand)]" />
                             )}
                           </div>
                         </div>
@@ -862,7 +862,7 @@ export default function DmWidget() {
 
               <div
                 ref={messageListRef}
-                className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4"
+                className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-muted/30 px-4 py-4"
               >
                 {hasNextPage && (
                   <div className="flex justify-center pb-2">
@@ -990,7 +990,7 @@ export default function DmWidget() {
                                   "flex max-w-[72%] flex-col overflow-hidden text-sm leading-6 text-foreground",
                                   isImageOnlyMessage
                                     ? "rounded-2xl rounded-bl-md bg-transparent p-0"
-                                    : "gap-2 rounded-2xl rounded-bl-md bg-muted px-3 py-2",
+                                    : "gap-2 rounded-2xl rounded-bl-md bg-card shadow-[var(--shadow-control)] px-3 py-2",
                                 )}
                               >
                                 {message.imageUrl && (
@@ -1024,7 +1024,7 @@ export default function DmWidget() {
                     <div className="relative h-16 w-16 overflow-hidden rounded-lg border bg-background">
                       <img
                         src={selectedImagePreviewUrl ?? selectedImageUrl ?? ""}
-                        alt="Attached image preview"
+                        alt="첨부 이미지 미리보기"
                         className="h-full w-full object-cover"
                         onError={(event) => {
                           event.currentTarget.src = defaultPostImage.src;
@@ -1034,18 +1034,18 @@ export default function DmWidget() {
                         type="button"
                         onClick={clearSelectedImage}
                         className="absolute right-1 top-1 rounded-full bg-black/55 p-0.5 text-white"
-                        aria-label="Remove attached image"
+                        aria-label="첨부 이미지 삭제"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </div>
                     <div className="min-w-0 text-xs text-muted-foreground">
-                      {isUploadingImage ? "Uploading image..." : "Image attached"}
+                      {isUploadingImage ? "이미지 업로드 중..." : "이미지 첨부됨"}
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 rounded-full border px-3 py-2">
+                <div className="flex items-center gap-2 rounded-full border bg-muted/30 px-3 py-2 transition-colors focus-within:border-ring/60">
                   <input
                     ref={imageInputRef}
                     type="file"
@@ -1057,7 +1057,7 @@ export default function DmWidget() {
                   <Input
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
-                    placeholder="Message..."
+                    placeholder="메시지를 입력하세요"
                     className="h-10 border-0 bg-transparent px-1 focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
@@ -1072,7 +1072,7 @@ export default function DmWidget() {
                     onClick={() => imageInputRef.current?.click()}
                     disabled={isUploadingImage}
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
-                    aria-label="Attach image"
+                    aria-label="이미지 첨부"
                   >
                     <ImageIcon className="h-5 w-5" />
                   </button>
@@ -1082,7 +1082,7 @@ export default function DmWidget() {
                     onClick={handleSend}
                     disabled={!canSendMessage}
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition disabled:bg-muted disabled:text-muted-foreground"
-                    aria-label="Send message"
+                    aria-label="메시지 보내기"
                   >
                     <SendHorizonal className="h-4 w-4" />
                   </button>

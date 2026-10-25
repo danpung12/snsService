@@ -48,26 +48,26 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #202b3b;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #202b3b;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: #202b3b;
+  --primary: #26384f;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: #eef2f7;
+  --secondary-foreground: #344660;
+  --muted: #f4f6fa;
+  --muted-foreground: #687588;
+  --accent: #edf3fa;
+  --accent-foreground: #26384f;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
+  --border: #e4eaf2;
+  --input: #d6dfeb;
+  --ring: #568bb8;
+  --chart-1: #3f89bd;
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
@@ -80,28 +80,36 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --brand: #287caf;
+  --brand-foreground: #ffffff;
+  --brand-soft: #edf5fc;
+  --like: #c9436b;
+  --like-soft: #fff0f5;
+  --shadow-control: 0 1px 2px #20365308, 0 2px 6px #20365305;
+  --shadow-panel: 0 4px 12px #20365305, 0 16px 40px #20365309;
+  --shadow-floating: 0 8px 24px #20365312, 0 24px 56px #20365316;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #141920;
+  --foreground: #e9eef5;
+  --card: #1c2430;
+  --card-foreground: #e9eef5;
+  --popover: #202a37;
+  --popover-foreground: #e9eef5;
+  --primary: #e2ebf6;
+  --primary-foreground: #1c2838;
+  --secondary: #263241;
+  --secondary-foreground: #e2ebf6;
+  --muted: #222c39;
+  --muted-foreground: #a0afc2;
+  --accent: #2b394b;
+  --accent-foreground: #e2ebf6;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
+  --border: #303e50;
+  --input: #3d5067;
+  --ring: #84b3db;
+  --chart-1: #84b3db;
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
@@ -114,6 +122,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --brand: #8dc3ed;
+  --brand-foreground: #14283a;
+  --brand-soft: #21374b;
+  --like: #f48eab;
+  --like-soft: #3b2635;
+  --shadow-control: 0 1px 3px #00000020;
+  --shadow-panel: 0 8px 28px #00000026;
+  --shadow-floating: 0 12px 40px #00000050;
 }
 
 @layer base {
@@ -125,6 +141,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
   }
 
   *::-webkit-scrollbar {
@@ -151,5 +168,36 @@
       var(--muted-foreground) 56%,
       transparent
     );
+  }
+}
+
+@layer base {
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  :where(a, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--ring) 22%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .avatar-polish {
+    box-shadow: 0 0 0 1px var(--border), 0 2px 5px #20365308;
+  }
+  .profile-avatar {
+    box-shadow: 0 0 0 4px var(--background), 0 0 0 5px var(--border), 0 10px 28px #20365310;
   }
 }

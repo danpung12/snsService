@@ -8,9 +8,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 import DmWidget from "../chat/dm-widget";
 import NotificationButton from "./header/notification-button";
 import ProfileButton from "./header/profile-button";
+
+const subscribeToHydration = () => () => {};
 
 export default function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,13 +24,14 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname.startsWith("/auth/success");
-  const isDarkMode = resolvedTheme === "dark";
+  const isHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const isDarkMode = isHydrated && resolvedTheme === "dark";
 
   return (
     <div className="flex min-h-screen flex-col">
       <header
         className={cn(
-          "bg-background/95 sticky top-0 z-50 h-15 border-b backdrop-blur",
+          "bg-background/95 sticky top-0 z-50 h-16 border-b border-border/80 shadow-[0_1px_8px_#20365303] backdrop-blur-xl",
           isChatPage && "hidden md:block",
         )}
       >
@@ -38,8 +42,8 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
           )}
         >
           <Link href={"/"} className="flex items-center gap-2">
-            <Image src={logo} alt="로고" className="h-5 w-auto" />
-            <div className="font-bold">공통 헤더</div>
+            <Image src={logo} alt="로고" className="h-6 w-auto" />
+            <div className="text-lg font-bold tracking-tight">LeeSNS</div>
           </Link>
           <div className="flex items-center gap-3">
             <button
@@ -51,9 +55,9 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
               }
             >
               {isDarkMode ? (
-                <Moon className="size-6" />
+                <Moon className="size-5" />
               ) : (
-                <SunIcon className="size-6" />
+                <SunIcon className="size-5" />
               )}
             </button>
             {!isAuthPage && (
@@ -79,7 +83,7 @@ export default function AppFrame({ children }: { children: React.ReactNode }) {
 
       {!isChatPage && (
         <>
-          <footer className="text-muted-foreground border-t py-10 text-center">
+          <footer className="text-muted-foreground/80 border-t border-border/70 py-10 text-center text-sm">
             @aass6863
           </footer>
           <DmWidget />

@@ -136,8 +136,8 @@ export default function PostItem({
 
   return (
     <article
-      className={`flex flex-col gap-6 ${
-        type === "FEED" ? "min-h-54 border-b py-7" : "min-h-62 pb-10"
+      className={`flex flex-col gap-5 ${
+        type === "FEED" ? "min-h-54 border-b border-border/80 py-6" : "min-h-62 pb-10"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -146,13 +146,13 @@ export default function PostItem({
             <SafeAvatar
               src={avatarUrl}
               alt={`${author.nickname} 프로필 이미지`}
-              className="h-10 w-10 rounded-full object-cover"
+              className="avatar-polish h-10 w-10 rounded-full object-cover"
             />
           </Link>
 
           <div>
-            <div className="font-bold hover:underline">{author.nickname}</div>
-            <div className="text-muted-foreground text-sm">
+            <div className="text-[15px] font-semibold hover:text-[var(--brand)] transition-colors">{author.nickname}</div>
+            <div className="text-muted-foreground text-xs">
               {formatTimeAgo(post.created_at)}
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function PostItem({
       <div className="flex flex-1 flex-col gap-5">
         {type === "FEED" ? (
           <Link href={`/post/${post.id}`} className="flex min-h-14">
-            <div className="line-clamp-3 break-words whitespace-pre-wrap leading-7">
+            <div className="line-clamp-3 text-[15px] break-words whitespace-pre-wrap leading-7">
               {post.content}
             </div>
           </Link>
@@ -188,7 +188,7 @@ export default function PostItem({
                   <CarouselItem className="basis-4/5 md:basis-3/5" key={url}>
                     <button
                       type="button"
-                      className="w-full overflow-hidden rounded-lg border bg-muted"
+                      className="w-full overflow-hidden rounded-xl border border-border/70 bg-muted shadow-[var(--shadow-control)]"
                       onClick={() => setPreviewImageUrl(url)}
                     >
                       <SafePostImage
@@ -230,14 +230,14 @@ export default function PostItem({
 
         {type === "FEED" && (
           <Link href={`/post/${post.id}`}>
-            <div className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm">
+            <div className="hover:bg-accent hover:border-ring/35 transition-colors flex cursor-pointer items-center gap-2 rounded-full border bg-card px-3 py-2 text-[13px] text-muted-foreground shadow-[var(--shadow-control)]">
               <MessageCircle className="h-4 w-4" />
               <span>댓글 {post.commentCount ?? 0}</span>
             </div>
           </Link>
         )}
 
-        <div className="text-muted-foreground flex items-center gap-2 rounded-xl border px-4 py-2 text-sm">
+        <div className="text-muted-foreground flex items-center gap-2 rounded-full border border-border/70 bg-muted/35 px-3 py-2 text-[13px]">
           <Eye className="h-4 w-4" />
           <span>조회수 {post.viewCount ?? 0}</span>
         </div>
